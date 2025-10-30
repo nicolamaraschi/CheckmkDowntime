@@ -1,0 +1,156 @@
+2025-10-29 20:25:40 [INFO] [main:47] - Starting application with configuration:
+2025-10-29 20:25:40 [INFO] [main:48] - CHECKMK_HOST: Not set
+2025-10-29 20:25:40 [INFO] [main:49] - CHECKMK_SITE: Not set
+2025-10-29 20:25:40 [INFO] [main:50] - CHECKMK_USER: Not set
+2025-10-29 20:25:40 [INFO] [main:51] - CHECKMK_PASSWORD: Not set
+2025-10-29 20:25:40 [INFO] [main:64] - ====================================================
+2025-10-29 20:25:40 [INFO] [main:65] -           Checkmk Downtime API Started              
+2025-10-29 20:25:40 [INFO] [main:66] - ====================================================
+2025-10-29 20:25:40 [INFO] [routes:33] - Testing connection to Checkmk server...
+2025-10-29 20:25:40 [ERROR] [routes:63] - Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x104b340d0>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 20:25:40 [ERROR] [main:74] - ❌ Failed to connect to Checkmk: Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x104b340d0>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 20:27:51 [INFO] [main:79] - ====================================================
+2025-10-29 20:27:51 [INFO] [main:80] -           Checkmk Downtime API Stopped              
+2025-10-29 20:27:51 [INFO] [main:81] - ====================================================
+2025-10-29 20:28:04 [INFO] [main:47] - Starting application with configuration:
+2025-10-29 20:28:04 [INFO] [main:48] - CHECKMK_HOST: Not set
+2025-10-29 20:28:04 [INFO] [main:49] - CHECKMK_SITE: Not set
+2025-10-29 20:28:04 [INFO] [main:50] - CHECKMK_USER: Not set
+2025-10-29 20:28:04 [INFO] [main:51] - CHECKMK_PASSWORD: Not set
+2025-10-29 20:28:04 [INFO] [main:64] - ====================================================
+2025-10-29 20:28:04 [INFO] [main:65] -           Checkmk Downtime API Started              
+2025-10-29 20:28:04 [INFO] [main:66] - ====================================================
+2025-10-29 20:28:04 [INFO] [routes:33] - Testing connection to Checkmk server...
+2025-10-29 20:28:04 [ERROR] [routes:63] - Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x106d96250>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 20:28:04 [ERROR] [main:74] - ❌ Failed to connect to Checkmk: Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x106d96250>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 20:28:06 [INFO] [main:79] - ====================================================
+2025-10-29 20:28:06 [INFO] [main:80] -           Checkmk Downtime API Stopped              
+2025-10-29 20:28:06 [INFO] [main:81] - ====================================================
+2025-10-29 20:28:23 [INFO] [main:47] - Starting application with configuration:
+2025-10-29 20:28:23 [INFO] [main:48] - CHECKMK_HOST: Not set
+2025-10-29 20:28:23 [INFO] [main:49] - CHECKMK_SITE: Not set
+2025-10-29 20:28:23 [INFO] [main:50] - CHECKMK_USER: Not set
+2025-10-29 20:28:23 [INFO] [main:51] - CHECKMK_PASSWORD: Not set
+2025-10-29 20:28:23 [INFO] [main:64] - ====================================================
+2025-10-29 20:28:23 [INFO] [main:65] -           Checkmk Downtime API Started              
+2025-10-29 20:28:23 [INFO] [main:66] - ====================================================
+2025-10-29 20:28:23 [INFO] [routes:33] - Testing connection to Checkmk server...
+2025-10-29 20:28:23 [ERROR] [routes:63] - Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x1105ca250>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 20:28:23 [ERROR] [main:74] - ❌ Failed to connect to Checkmk: Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x1105ca250>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 20:30:03 [INFO] [main:79] - ====================================================
+2025-10-29 20:30:03 [INFO] [main:80] -           Checkmk Downtime API Stopped              
+2025-10-29 20:30:03 [INFO] [main:81] - ====================================================
+2025-10-29 20:35:38 [INFO] [main:47] - Starting application with configuration:
+2025-10-29 20:35:38 [INFO] [main:48] - CHECKMK_HOST: Not set
+2025-10-29 20:35:38 [INFO] [main:49] - CHECKMK_SITE: Not set
+2025-10-29 20:35:38 [INFO] [main:50] - CHECKMK_USER: Not set
+2025-10-29 20:35:38 [INFO] [main:51] - CHECKMK_PASSWORD: Not set
+2025-10-29 20:35:38 [INFO] [main:64] - ====================================================
+2025-10-29 20:35:38 [INFO] [main:65] -           Checkmk Downtime API Started              
+2025-10-29 20:35:38 [INFO] [main:66] - ====================================================
+2025-10-29 20:35:38 [INFO] [routes:33] - Testing connection to Checkmk server...
+2025-10-29 20:35:38 [ERROR] [routes:63] - Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x107b9c430>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 20:35:38 [ERROR] [main:74] - ❌ Failed to connect to Checkmk: Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x107b9c430>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 20:36:17 [INFO] [main:79] - ====================================================
+2025-10-29 20:36:17 [INFO] [main:80] -           Checkmk Downtime API Stopped              
+2025-10-29 20:36:17 [INFO] [main:81] - ====================================================
+2025-10-29 20:38:06 [INFO] [main:50] - Starting application with configuration:
+2025-10-29 20:38:06 [INFO] [main:51] - CHECKMK_HOST: monitor-horsarun.horsa.it
+2025-10-29 20:38:06 [INFO] [main:52] - CHECKMK_SITE: mkhrun
+2025-10-29 20:38:06 [INFO] [main:53] - CHECKMK_USER: demousera
+2025-10-29 20:38:06 [INFO] [main:54] - CHECKMK_PASSWORD: *****
+2025-10-29 20:38:06 [INFO] [main:67] - ====================================================
+2025-10-29 20:38:06 [INFO] [main:68] -           Checkmk Downtime API Started              
+2025-10-29 20:38:06 [INFO] [main:69] - ====================================================
+2025-10-29 20:38:06 [INFO] [routes:33] - Testing connection to Checkmk server...
+2025-10-29 20:38:06 [ERROR] [routes:63] - Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x1034353d0>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 20:38:06 [ERROR] [main:77] - ❌ Failed to connect to Checkmk: Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x1034353d0>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 21:32:43 [INFO] [main:82] - ====================================================
+2025-10-29 21:32:43 [INFO] [main:83] -           Checkmk Downtime API Stopped              
+2025-10-29 21:32:43 [INFO] [main:84] - ====================================================
+2025-10-29 21:32:49 [INFO] [main:50] - Starting application with configuration:
+2025-10-29 21:32:49 [INFO] [main:51] - CHECKMK_HOST: monitor-horsarun.horsa.it
+2025-10-29 21:32:49 [INFO] [main:52] - CHECKMK_SITE: mkhrun
+2025-10-29 21:32:49 [INFO] [main:53] - CHECKMK_USER: demousera
+2025-10-29 21:32:49 [INFO] [main:54] - CHECKMK_PASSWORD: *****
+2025-10-29 21:32:49 [INFO] [main:67] - ====================================================
+2025-10-29 21:32:49 [INFO] [main:68] -           Checkmk Downtime API Started              
+2025-10-29 21:32:49 [INFO] [main:69] - ====================================================
+2025-10-29 21:32:49 [INFO] [routes:33] - Testing connection to Checkmk server...
+2025-10-29 21:32:50 [ERROR] [routes:63] - Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x104db43d0>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 21:32:50 [ERROR] [main:77] - ❌ Failed to connect to Checkmk: Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x104db43d0>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 21:35:16 [INFO] [main:82] - ====================================================
+2025-10-29 21:35:16 [INFO] [main:83] -           Checkmk Downtime API Stopped              
+2025-10-29 21:35:16 [INFO] [main:84] - ====================================================
+2025-10-29 22:58:28 [INFO] [main:50] - Starting application with configuration:
+2025-10-29 22:58:28 [INFO] [main:51] - CHECKMK_HOST: monitor-horsarun.horsa.it
+2025-10-29 22:58:28 [INFO] [main:52] - CHECKMK_SITE: mkhrun
+2025-10-29 22:58:28 [INFO] [main:53] - CHECKMK_USER: demousera
+2025-10-29 22:58:28 [INFO] [main:54] - CHECKMK_PASSWORD: *****
+2025-10-29 22:58:28 [INFO] [main:67] - ====================================================
+2025-10-29 22:58:28 [INFO] [main:68] -           Checkmk Downtime API Started              
+2025-10-29 22:58:28 [INFO] [main:69] - ====================================================
+2025-10-29 22:58:28 [INFO] [routes:33] - Testing connection to Checkmk server...
+2025-10-29 22:58:31 [ERROR] [routes:63] - Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x121f0d3d0>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 22:58:31 [ERROR] [main:77] - ❌ Failed to connect to Checkmk: Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x121f0d3d0>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 22:58:58 [INFO] [main:82] - ====================================================
+2025-10-29 22:58:58 [INFO] [main:83] -           Checkmk Downtime API Stopped              
+2025-10-29 22:58:58 [INFO] [main:84] - ====================================================
+2025-10-29 23:00:58 [INFO] [main:50] - Starting application with configuration:
+2025-10-29 23:00:58 [INFO] [main:51] - CHECKMK_HOST: monitor-horsarun.horsa.it
+2025-10-29 23:00:58 [INFO] [main:52] - CHECKMK_SITE: mkhrun
+2025-10-29 23:00:58 [INFO] [main:53] - CHECKMK_USER: demousera
+2025-10-29 23:00:58 [INFO] [main:54] - CHECKMK_PASSWORD: *****
+2025-10-29 23:00:58 [INFO] [main:67] - ====================================================
+2025-10-29 23:00:58 [INFO] [main:68] -           Checkmk Downtime API Started              
+2025-10-29 23:00:58 [INFO] [main:69] - ====================================================
+2025-10-29 23:00:58 [INFO] [routes:33] - Testing connection to Checkmk server...
+2025-10-29 23:00:58 [ERROR] [routes:63] - Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x102ec93d0>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 23:00:58 [ERROR] [main:77] - ❌ Failed to connect to Checkmk: Connection error: HTTPSConnectionPool(host='monitor-horsarun.horsa.it', port=443): Max retries exceeded with url: /mkhrun/check_mk/api/1.0/version (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x102ec93d0>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))
+2025-10-29 23:07:36 [INFO] [main:82] - ====================================================
+2025-10-29 23:07:36 [INFO] [main:83] -           Checkmk Downtime API Stopped              
+2025-10-29 23:07:36 [INFO] [main:84] - ====================================================
+2025-10-29 23:10:49 [INFO] [main:50] - Starting application with configuration:
+2025-10-29 23:10:49 [INFO] [main:51] - CHECKMK_HOST: 127.0.0.1:5000
+2025-10-29 23:10:49 [INFO] [main:52] - CHECKMK_SITE: mkhrun
+2025-10-29 23:10:49 [INFO] [main:53] - CHECKMK_USER: demousera
+2025-10-29 23:10:49 [INFO] [main:54] - CHECKMK_PASSWORD: *****
+2025-10-29 23:10:49 [INFO] [main:67] - ====================================================
+2025-10-29 23:10:49 [INFO] [main:68] -           Checkmk Downtime API Started              
+2025-10-29 23:10:49 [INFO] [main:69] - ====================================================
+2025-10-29 23:10:49 [INFO] [routes:33] - Testing connection to Checkmk server...
+2025-10-29 23:10:59 [ERROR] [routes:66] - Connection timed out
+2025-10-29 23:10:59 [ERROR] [main:77] - ❌ Failed to connect to Checkmk: Connection timed out (>10s)
+2025-10-29 23:17:30 [INFO] [main:82] - ====================================================
+2025-10-29 23:17:30 [INFO] [main:83] -           Checkmk Downtime API Stopped              
+2025-10-29 23:17:30 [INFO] [main:84] - ====================================================
+2025-10-29 23:44:43 [INFO] [main:50] - Starting application with configuration:
+2025-10-29 23:44:43 [INFO] [main:51] - CHECKMK_HOST: checkmk.horsacloudtech.net
+2025-10-29 23:44:43 [INFO] [main:52] - CHECKMK_SITE: mkhrun
+2025-10-29 23:44:43 [INFO] [main:53] - CHECKMK_USER: demousera
+2025-10-29 23:44:43 [INFO] [main:54] - CHECKMK_PASSWORD: *****
+2025-10-29 23:44:43 [INFO] [main:67] - ====================================================
+2025-10-29 23:44:43 [INFO] [main:68] -           Checkmk Downtime API Started              
+2025-10-29 23:44:43 [INFO] [main:69] - ====================================================
+2025-10-29 23:44:43 [INFO] [routes:33] - Testing connection to Checkmk server...
+2025-10-29 23:44:44 [INFO] [routes:50] - Connection successful! Response time: 1.56s
+2025-10-29 23:44:44 [INFO] [routes:51] - Checkmk version: unknown
+2025-10-29 23:44:44 [INFO] [main:75] - ✅ Successfully connected to Checkmk: Connected to Checkmk vunknown in 1.56s
+2025-10-29 23:48:14 [INFO] [main:82] - ====================================================
+2025-10-29 23:48:14 [INFO] [main:83] -           Checkmk Downtime API Stopped              
+2025-10-29 23:48:14 [INFO] [main:84] - ====================================================
+2025-10-29 23:48:17 [INFO] [main:50] - Starting application with configuration:
+2025-10-29 23:48:17 [INFO] [main:51] - CHECKMK_HOST: checkmk.horsacloudtech.net
+2025-10-29 23:48:17 [INFO] [main:52] - CHECKMK_SITE: mkhrun
+2025-10-29 23:48:17 [INFO] [main:53] - CHECKMK_USER: demousera
+2025-10-29 23:48:17 [INFO] [main:54] - CHECKMK_PASSWORD: *****
+2025-10-29 23:48:17 [INFO] [main:67] - ====================================================
+2025-10-29 23:48:17 [INFO] [main:68] -           Checkmk Downtime API Started              
+2025-10-29 23:48:17 [INFO] [main:69] - ====================================================
+2025-10-29 23:48:17 [INFO] [routes:33] - Testing connection to Checkmk server...
+2025-10-29 23:48:18 [INFO] [routes:50] - Connection successful! Response time: 0.74s
+2025-10-29 23:48:18 [INFO] [routes:51] - Checkmk version: unknown
+2025-10-29 23:48:18 [INFO] [main:75] - ✅ Successfully connected to Checkmk: Connected to Checkmk vunknown in 0.74s
+2025-10-29 23:48:23 [INFO] [main:82] - ====================================================
+2025-10-29 23:48:23 [INFO] [main:83] -           Checkmk Downtime API Stopped              
+2025-10-29 23:48:23 [INFO] [main:84] - ====================================================

@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - CHECKMK_HOST=${CHECKMK_HOST}
+      - CHECKMK_SITE=${CHECKMK_SITE}
+      - CHECKMK_USER=${CHECKMK_USER}
+      - CHECKMK_PASSWORD=${CHECKMK_PASSWORD}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./logs:/app/logs
+    restart: always
