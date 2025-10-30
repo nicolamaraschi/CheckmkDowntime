@@ -112,7 +112,7 @@ async def validate_token(token: str = Depends(security)) -> dict:
 # This dependency will be used in your API routes
 async def get_current_user(claims: dict = Depends(validate_token)) -> str:
     """Returns the username from the validated token claims."""
-    username = claims.get("username")
+    username = claims.get("username") or claims.get("cognito:username") or claims.get("sub")
     if not username:
         logger.warning("Token payload missing username claim.")
         raise HTTPException(
