@@ -1,38 +1,66 @@
 import React from 'react';
 import { useApi } from '../hooks/useApi';
 import '../styles/hostConfig.css';
+import Loader from '../components/Loader';
 
 const HostConfig = () => {
-  const { data: hosts, loading, error } = useApi('/hosts');
+  // Usa la versione corretta dell'endpoint (senza /api)
+  const { data, loading, error } = useApi('hosts');
+  
+  // Stato di caricamento
+  if (loading) {
+    return (
+      <div className="host-config-container">
+        <h1>Configurazione Host</h1>
+        <Loader text="Caricamento host in corso..." />
+      </div>
+    );
+  }
+  
+  // Gestione errori
+  if (error) {
+    return (
+      <div className="host-config-container">
+        <h1>Configurazione Host</h1>
+        <div className="error-message">
+          <h3>Errore</h3>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // CORREZIONE: Gestisci i diversi formati della risposta API
+  // La risposta potrebbe essere { hosts: [...] } o direttamente l'array di hosts
+  let hosts = [];
+  if (data) {
+    if (Array.isArray(data)) {
+      // Se data è direttamente un array
+      hosts = data;
+    } else if (data.hosts && Array.isArray(data.hosts)) {
+      // Se data ha una proprietà hosts che è un array
+      hosts = data.hosts;
+    } else {
+      // Prova a ispezionare altre proprietà se disponibili
+      console.log("Formato risposta API inatteso:", data);
+    }
+  }
 
   return (
     <div className="host-config-container">
       <h1>Configurazione Host</h1>
       
-      {loading && <div className="loading-spinner">Caricamento host in corso...</div>}
+      <div className="host-count">
+        {hosts.length} host disponibili
+      </div>
       
-      {error && (
-        <div className="error-message">
-          <h3>Errore</h3>
-          <p>{error}</p>
-        </div>
-      )}
-      
-      {!loading && !error && hosts && (
-        <>
-          <div className="host-count">
-            {hosts.length} host disponibili
+      <div className="hosts-grid">
+        {hosts.map(host => (
+          <div key={host} className="host-card">
+            <h3>{host}</h3>
           </div>
-          
-          <div className="hosts-grid">
-            {hosts.map(host => (
-              <div key={host} className="host-card">
-                <h3>{host}</h3>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+        ))}
+      </div>
     </div>
   );
 };

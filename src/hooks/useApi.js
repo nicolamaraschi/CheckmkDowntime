@@ -1,74 +1,103 @@
-import { useCallback } from 'react';
+// src/hooks/useApi.js
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 
-// This hook provides methods to interact with the API, automatically handling auth.
-export const useApi = () => {
-  const { token, refreshToken, logout } = useAuth();
+export const useApi = (endpoint, method = 'GET', body = null) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [rawResponse, setRawResponse] = useState(null); // Per debugging
+  const { token, refreshToken } = useAuth();
 
-  const request = useCallback(async (endpoint, options = {}) => {
-    const baseUrl = window.API_BASE_URL || '/api';
-    const url = `${baseUrl}${endpoint}`;
-
+  const fetchData = useCallback(async () => {
     if (!token) {
-      // This shouldn't happen in a protected route, but as a safeguard:
-      logout();
-      throw new Error('No authentication token found.');
+      setError('No authentication token');
+      setLoading(false);
+      return;
     }
+    
+    setLoading(true);
+    try {
+      const options = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      };
 
-    const defaultHeaders = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    };
+      if (body && (method === 'POST' || method === 'PUT')) {
+        options.body = JSON.stringify(body);
+      }
 
-    options.headers = { ...defaultHeaders, ...options.headers };
-
-    let response = await fetch(url, options);
-
-    if (response.status === 401) {
-      try {
+      // Assicurati che l'endpoint abbia il prefisso /api
+      const baseUrl = '/api'; 
+      
+      // Rimuovi la barra iniziale da endpoint se presente
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+      
+      // Costruisci l'URL con il prefisso /api e l'endpoint
+      const url = `${baseUrl}/${cleanEndpoint}`;
+      
+      console.log(`Fetching ${method} ${url}`);
+      const timeStart = Date.now();
+      
+      const response = await fetch(url, options);
+      setRawResponse(response); // Salva la risposta grezza per debug
+      
+      const timeElapsed = Date.now() - timeStart;
+      console.log(`Response received in ${timeElapsed}ms`);
+      
+      if (response.status === 401) {
         const newToken = await refreshToken();
         if (newToken) {
-          options.headers['Authorization'] = `Bearer ${newToken}`;
-          response = await fetch(url, options); // Retry the request
+          options.headers.Authorization = `Bearer ${newToken}`;
+          const retryResponse = await fetch(url, options);
+          if (!retryResponse.ok) {
+            throw new Error(`API error: ${retryResponse.status}`);
+          }
+          const result = await retryResponse.json();
+          
+          // Per endpoint specifici, esegui trasformazioni particolari
+          if (cleanEndpoint === 'hosts') {
+            console.log('Host data received:', result);
+            // Se il backend restituisce { hosts: [...] }
+            setData(result.hosts || result);
+          } else {
+            setData(result);
+          }
         } else {
-          logout();
-          throw new Error('Session expired. Please log in again.');
+          throw new Error('Token refresh failed');
         }
-      } catch (error) {
-        logout();
-        throw new Error('Session expired. Please log in again.');
+      } else if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      } else {
+        const result = await response.json();
+        
+        // Per endpoint specifici, esegui trasformazioni particolari
+        if (cleanEndpoint === 'hosts') {
+          console.log('Host data received:', result);
+          // Se il backend restituisce { hosts: [...] }
+          setData(result.hosts || result);
+        } else {
+          setData(result);
+        }
       }
+    } catch (err) {
+      setError(err.message || 'Error in API call');
+      console.error('API error:', err);
+    } finally {
+      setLoading(false);
     }
+  }, [endpoint, method, body, token, refreshToken]);
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({})); // Try to parse error, but don't fail if it's not JSON
-      const errorMessage = errorData.detail || `Request failed with status ${response.status}`;
-      throw new Error(errorMessage);
+  useEffect(() => {
+    if (token) {
+      fetchData();
     }
+  }, [token, fetchData]);
 
-    // For 204 No Content, response.json() will fail
-    if (response.status === 204) {
-        return null;
-    }
-
-    return response.json();
-
-  }, [token, refreshToken, logout]);
-
-  const get = useCallback((endpoint) => {
-    return request(endpoint, { method: 'GET' });
-  }, [request]);
-
-  const post = useCallback((endpoint, body) => {
-    return request(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
-  }, [request]);
-
-  const del = useCallback((endpoint) => {
-    return request(endpoint, { method: 'DELETE' });
-  }, [request]);
-
-  return { get, post, del, request };
+  return { data, loading, error, rawResponse, refetch: fetchData };
 };
+
+export default useApi;

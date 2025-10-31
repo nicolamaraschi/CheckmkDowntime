@@ -1,7 +1,5 @@
-// Salva come: src/components/Loader.jsx
-
 import React from 'react';
-import '../styles/loader.css'; // Creeremo questo file tra un attimo
+import '../styles/loader.css';
 
 const Loader = ({ text = "Caricamento..." }) => {
     return (

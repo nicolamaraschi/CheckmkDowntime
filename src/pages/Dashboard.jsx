@@ -1,15 +1,12 @@
-// Salva come: src/pages/Dashboard.jsx
-
 import React from 'react';
 import '../styles/dashboard.css';
-import { useApi } from '../hooks/useApi'; // Importa l'hook API
-import Loader from '../components/Loader'; // <-- 1. IMPORTA IL LOADER
+import { useApi } from '../hooks/useApi';
+import Loader from '../components/Loader';
 
 const Dashboard = () => {
-    // Usa l'hook per chiamare l'endpoint /api/stats
-    const { data: stats, loading, error } = useApi('/api/stats');
+    // Rimosso "/api" dal percorso - useApi lo aggiungerà
+    const { data: stats, loading, error } = useApi('stats');
 
-    // <-- 2. USA IL LOADER QUI -->
     if (loading) {
         return (
             <div className="dashboard-container">
@@ -22,19 +19,16 @@ const Dashboard = () => {
         return <div className="dashboard-container">Errore nel caricamento: {error.message}</div>;
     }
 
-    // Una volta caricati i dati, mostrali
     return (
         <div className="dashboard-container">
             <h1 className="dashboard-title">Dashboard</h1>
             <div className="stats-container">
                 <div className="stat-card">
                     <h2 className="stat-title">Host Totali</h2>
-                    {/* Usa i dati dall'API, con fallback '...' */}
                     <p className="stat-value">{stats ? stats.totalHosts : '...'}</p>
                 </div>
                 <div className="stat-card">
                     <h2 className="stat-title">Downtime Attivi</h2>
-                    {/* Usa i dati dall'API, con fallback '...' */}
                     <p className="stat-value">{stats ? stats.activeDowntimes : '...'}</p>
                 </div>
             </div>

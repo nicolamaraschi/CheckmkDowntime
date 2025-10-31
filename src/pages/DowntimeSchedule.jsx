@@ -1,13 +1,11 @@
-// Salva come: src/pages/DowntimeSchedule.jsx
-
 import React, { useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import HostSelector from '../components/HostSelector';
 import WeekdayPicker from '../components/WeekdayPicker';
 import TimePicker from '../components/TimePicker';
-import RecurrencePicker from '../components/RecurrencePicker';
 import '../styles/downtimeSchedule.css';
-import '../styles/loader.css'; // <-- 1. IMPORTA LO STILE DEL LOADER
+import '../styles/loader.css';
+import Loader from '../components/Loader';
 
 const DowntimeSchedule = () => {
     const [selectedHost, setSelectedHost] = useState('');
@@ -16,18 +14,15 @@ const DowntimeSchedule = () => {
     const [endTime, setEndTime] = useState('01:00');
     const [recurrence, setRecurrence] = useState(0);
     const [commento, setCommento] = useState('');
-
-    // --- 2. STATI PER GESTIRE IL CARICAMENTO E I MESSAGGI ---
-    const [loading, setLoading] = useState(false); // Per il submit del form
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     
-    const { getToken } = useAuth();
+    const { token } = useAuth();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validazione
         if (!selectedHost) {
             setError("Per favore, seleziona un host.");
             setSuccess(null);
@@ -39,22 +34,21 @@ const DowntimeSchedule = () => {
             return;
         }
 
-        // --- 3. IMPOSTA CARICAMENTO E RESETTA MESSAGGI ---
         setLoading(true);
         setError(null);
         setSuccess(null);
 
         const payload = {
             host: selectedHost,
-            giorni: weekdays.map(day => day.value), // Es. [0, 1, 2]
+            giorni: weekdays,
             startTime: startTime,
             endTime: endTime,
             ripeti: recurrence,
-            commento: commento
+            commento: commento || "Manutenzione programmata"
         };
 
         try {
-            const token = await getToken();
+            // Corretto URL dell'API con prefisso /api
             const response = await fetch('/api/schedule', {
                 method: 'POST',
                 headers: {
@@ -67,18 +61,15 @@ const DowntimeSchedule = () => {
             const result = await response.json();
 
             if (!response.ok) {
-                // Se l'API stessa fallisce (es. 500)
                 throw new Error(result.detail || `Errore server: ${response.status}`);
             }
 
-            // Se l'API ha successo (200) ma Checkmk ha restituito errori
             const errorsInResponses = result.responses.filter(r => r !== 'Done');
             if (errorsInResponses.length > 0) {
                 const firstError = errorsInResponses[0];
                 setError(`Operazione completata, ma con ${errorsInResponses.length} errori. (Es: ${firstError})`);
             } else {
-                setSuccess(`Downtime (${result.responses.length}) programmati con successo per ${selectedHost}!`);
-                // Resetta il form
+                setSuccess(`Downtime programmato con successo per ${selectedHost}!`);
                 setSelectedHost('');
                 setWeekdays([]);
                 setRecurrence(0);
@@ -88,10 +79,18 @@ const DowntimeSchedule = () => {
         } catch (err) {
             setError(err.message);
         } finally {
-            // --- 4. FERMA IL CARICAMENTO ---
             setLoading(false);
         }
     };
+
+    if (loading) {
+        return (
+            <div className="downtime-container">
+                <h1>Programmazione Downtime in corso</h1>
+                <Loader text="Programmazione in corso, attendere prego... (fino a 30s)" />
+            </div>
+        );
+    }
 
     return (
         <div className="downtime-container">
@@ -105,7 +104,7 @@ const DowntimeSchedule = () => {
 
                 <div className="form-group">
                     <label>Giorni della settimana</label>
-                    <WeekdayPicker selectedDays={weekdays} setSelectedDays={setWeekdays} />
+                    <WeekdayPicker value={weekdays} onChange={setWeekdays} />
                 </div>
 
                 <div className="time-group">
@@ -121,7 +120,13 @@ const DowntimeSchedule = () => {
 
                 <div className="form-group">
                     <label>Ripeti per i prossimi X giorni</label>
-                    <RecurrencePicker value={recurrence} onChange={setRecurrence} />
+                    <input 
+                        type="number" 
+                        min="0" 
+                        max="365"
+                        value={recurrence} 
+                        onChange={(e) => setRecurrence(parseInt(e.target.value))}
+                    />
                 </div>
 
                 <div className="form-group">
@@ -134,21 +139,14 @@ const DowntimeSchedule = () => {
                     />
                 </div>
 
-                {/* --- 5. BOTTONE E SPINNER DI CARICAMENTO --- */}
                 <div className="form-actions">
-                    <button type="submit" className="submit-btn" disabled={loading}>
-                        {loading ? 'Programmazione in corso...' : 'Programma Downtime'}
+                    <button type="submit" className="submit-btn">
+                        Programma Downtime
                     </button>
-                    
-                    {loading && (
-                        <div className="loader-spinner"></div>
-                    )}
                 </div>
 
-                {/* Messaggi di stato */}
                 {success && <div className="form-message success-message">{success}</div>}
                 {error && <div className="form-message error-message">{error}</div>}
-
             </form>
         </div>
     );
