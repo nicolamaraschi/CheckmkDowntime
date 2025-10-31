@@ -1,42 +1,49 @@
+// Salva come: src/components/HostSelector.jsx
+
 import React from 'react';
 import { useApi } from '../hooks/useApi';
 
-const HostSelector = ({ selectedHosts, setSelectedHosts }) => {
-  const { data: hosts, loading, error } = useApi('/hosts');
+const HostSelector = ({ selectedHost, setSelectedHost }) => {
+    // Chiama l'API per /api/hosts
+    const { data, loading, error } = useApi('/api/hosts');
 
-  const handleHostChange = (event) => {
-    const { options } = event.target;
-    const selected = [];
-    for (let i = 0, l = options.length; i < l; i++) {
-      if (options[i].selected) {
-        selected.push(options[i].value);
-      }
+    // Estrai la lista di host, ordina alfabeticamente
+    // Aggiunto .sort() per ordine alfabetico
+    const hosts = data ? [...data.hosts].sort() : [];
+
+    const handleChange = (e) => {
+        setSelectedHost(e.target.value);
+    };
+
+    // --- Gestione Caricamento ---
+    if (loading) {
+        return (
+            <select disabled>
+                <option>Caricamento host in corso (può richiedere fino a 30s)...</option>
+            </select>
+        );
     }
-    setSelectedHosts(selected);
-  };
 
-  if (loading) return <p>Loading hosts...</p>;
-  if (error) return <p>Error loading hosts: {error}</p>;
+    // --- Gestione Errore ---
+    if (error) {
+        return (
+            <select disabled style={{ borderColor: 'red' }}>
+                <option>Errore nel caricamento host: {error.message}</option>
+            </select>
+        );
+    }
 
-  return (
-    <div>
-      <label htmlFor="host-selector">Select Hosts:</label>
-      <select
-        id="host-selector"
-        multiple
-        value={selectedHosts}
-        onChange={handleHostChange}
-        className="form-control"
-        style={{ height: '200px' }}
-      >
-        {hosts && hosts.map((host) => (
-          <option key={host} value={host}>
-            {host}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
+    // --- Render Normale ---
+    return (
+        <select value={selectedHost} onChange={handleChange}>
+            <option value="">-- Seleziona un host --</option>
+            {hosts.map(host => (
+                <option key={host} value={host}>
+                    {host}
+                </option>
+            ))}
+        </select>
+    );
 };
 
 export default HostSelector;

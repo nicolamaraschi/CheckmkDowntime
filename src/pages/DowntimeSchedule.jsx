@@ -1,213 +1,157 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useApi } from '../hooks/useApi';
+// Salva come: src/pages/DowntimeSchedule.jsx
+
+import React, { useState } from 'react';
+import { useAuth } from '../auth/AuthProvider';
+import HostSelector from '../components/HostSelector';
+import WeekdayPicker from '../components/WeekdayPicker';
+import TimePicker from '../components/TimePicker';
+import RecurrencePicker from '../components/RecurrencePicker';
 import '../styles/downtimeSchedule.css';
+import '../styles/loader.css'; // <-- 1. IMPORTA LO STILE DEL LOADER
 
 const DowntimeSchedule = () => {
-  const [hosts, setHosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  
-  const [selectedHost, setSelectedHost] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [comment, setComment] = useState('');
-  
-  const navigate = useNavigate();
-  const api = useApi();
+    const [selectedHost, setSelectedHost] = useState('');
+    const [weekdays, setWeekdays] = useState([]);
+    const [startTime, setStartTime] = useState('00:00');
+    const [endTime, setEndTime] = useState('01:00');
+    const [recurrence, setRecurrence] = useState(0);
+    const [commento, setCommento] = useState('');
 
-  // Set default dates and times
-  useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const now = new Date().toTimeString().slice(0, 5);
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    setStartDate(today);
-    setStartTime(now);
-    setEndDate(tomorrow.toISOString().split('T')[0]);
-    setEndTime(now);
-  }, []);
-
-  // Fetch hosts
-  const fetchHosts = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await api.get('/hosts');
-      setHosts(data || []);
-      if (data && data.length > 0) {
-        setSelectedHost(data[0]);
-      }
-    } catch (err) {
-      console.error("Error fetching hosts:", err);
-      setError(err.message || "Si è verificato un errore durante il recupero degli host");
-    } finally {
-      setLoading(false);
-    }
-  }, [api]); // api is a dependency
-
-  useEffect(() => {
-    fetchHosts();
-  }, [fetchHosts]);
-
-  const formatISODateTime = (date, time) => {
-    // Assuming local time is the intended timezone for the API
-    return `${date}T${time}:00`;
-  };
-  
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+    // --- 2. STATI PER GESTIRE IL CARICAMENTO E I MESSAGGI ---
+    const [loading, setLoading] = useState(false); // Per il submit del form
+    const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(null);
     
-    if (!selectedHost || !startDate || !startTime || !endDate || !endTime || !comment) {
-      setError("Tutti i campi sono obbligatori");
-      return;
-    }
-    
-    const startDateTime = new Date(`${startDate}T${startTime}`);
-    const endDateTime = new Date(`${endDate}T${endTime}`);
-    
-    if (endDateTime <= startDateTime) {
-      setError("La data/ora di fine deve essere successiva alla data/ora di inizio");
-      return;
-    }
-    
-    setSubmitting(true);
-    setError(null);
-    setSuccess(null);
-    
-    try {
-      const downtimeData = {
-        host_name: selectedHost,
-        start_time: formatISODateTime(startDate, startTime),
-        end_time: formatISODateTime(endDate, endTime),
-        comment: comment
-      };
+    const { getToken } = useAuth();
 
-      const result = await api.post('/downtime', downtimeData);
-      console.log("Downtime scheduled:", result);
-      
-      setSuccess("Downtime programmato con successo!");
-      setComment('');
-      
-      setTimeout(() => {
-        navigate('/downtimes');
-      }, 2000);
-      
-    } catch (err) {
-      console.error("Error scheduling downtime:", err);
-      setError(err.message || "Si è verificato un errore durante la programmazione del downtime");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-  
-  return (
-    <div className="downtime-schedule-container">
-      <h1>Pianifica Downtime</h1>
-      
-      {loading ? (
-        <div className="loading-spinner">Caricamento...</div>
-      ) : (
-        <form className="downtime-form" onSubmit={handleSubmit}>
-          {error && <div className="error-message">{error}</div>}
-          {success && <div className="success-message">{success}</div>}
-          
-          <div className="form-group">
-            <label htmlFor="host">Host</label>
-            <select 
-              id="host" 
-              value={selectedHost}
-              onChange={(e) => setSelectedHost(e.target.value)}
-              required
-              className="form-control"
-            >
-              {hosts.map(host => (
-                <option key={host} value={host}>
-                  {host}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="start-date">Data inizio</label>
-              <input 
-                id="start-date" 
-                type="date" 
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                required
-                className="form-control"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="start-time">Ora inizio</label>
-              <input 
-                id="start-time" 
-                type="time" 
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                required
-                className="form-control"
-              />
-            </div>
-          </div>
-          
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="end-date">Data fine</label>
-              <input 
-                id="end-date" 
-                type="date" 
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                required
-                className="form-control"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="end-time">Ora fine</label>
-              <input 
-                id="end-time" 
-                type="time" 
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                required
-                className="form-control"
-              />
-            </div>
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="comment">Commento</label>
-            <textarea 
-              id="comment" 
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Inserisci il motivo del downtime"
-              required
-              className="form-control"
-            />
-          </div>
-          
-          <button 
-            type="submit" 
-            className="submit-button"
-            disabled={submitting}
-          >
-            {submitting ? 'Pianificazione in corso...' : 'Pianifica Downtime'}
-          </button>
-        </form>
-      )}
-    </div>
-  );
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        // Validazione
+        if (!selectedHost) {
+            setError("Per favore, seleziona un host.");
+            setSuccess(null);
+            return;
+        }
+        if (weekdays.length === 0) {
+            setError("Per favore, seleziona almeno un giorno.");
+            setSuccess(null);
+            return;
+        }
+
+        // --- 3. IMPOSTA CARICAMENTO E RESETTA MESSAGGI ---
+        setLoading(true);
+        setError(null);
+        setSuccess(null);
+
+        const payload = {
+            host: selectedHost,
+            giorni: weekdays.map(day => day.value), // Es. [0, 1, 2]
+            startTime: startTime,
+            endTime: endTime,
+            ripeti: recurrence,
+            commento: commento
+        };
+
+        try {
+            const token = await getToken();
+            const response = await fetch('/api/schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                // Se l'API stessa fallisce (es. 500)
+                throw new Error(result.detail || `Errore server: ${response.status}`);
+            }
+
+            // Se l'API ha successo (200) ma Checkmk ha restituito errori
+            const errorsInResponses = result.responses.filter(r => r !== 'Done');
+            if (errorsInResponses.length > 0) {
+                const firstError = errorsInResponses[0];
+                setError(`Operazione completata, ma con ${errorsInResponses.length} errori. (Es: ${firstError})`);
+            } else {
+                setSuccess(`Downtime (${result.responses.length}) programmati con successo per ${selectedHost}!`);
+                // Resetta il form
+                setSelectedHost('');
+                setWeekdays([]);
+                setRecurrence(0);
+                setCommento('');
+            }
+
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            // --- 4. FERMA IL CARICAMENTO ---
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="downtime-container">
+            <h1>Programma Downtime</h1>
+            <form className="downtime-form" onSubmit={handleSubmit}>
+                
+                <div className="form-group">
+                    <label>Host</label>
+                    <HostSelector selectedHost={selectedHost} setSelectedHost={setSelectedHost} />
+                </div>
+
+                <div className="form-group">
+                    <label>Giorni della settimana</label>
+                    <WeekdayPicker selectedDays={weekdays} setSelectedDays={setWeekdays} />
+                </div>
+
+                <div className="time-group">
+                    <div className="form-group">
+                        <label>Ora Inizio (HH:MM)</label>
+                        <TimePicker value={startTime} onChange={setStartTime} />
+                    </div>
+                    <div className="form-group">
+                        <label>Ora Fine (HH:MM)</label>
+                        <TimePicker value={endTime} onChange={setEndTime} />
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <label>Ripeti per i prossimi X giorni</label>
+                    <RecurrencePicker value={recurrence} onChange={setRecurrence} />
+                </div>
+
+                <div className="form-group">
+                    <label>Commento</label>
+                    <input 
+                        type="text" 
+                        value={commento} 
+                        onChange={(e) => setCommento(e.target.value)}
+                        placeholder="Es. Manutenzione programmata"
+                    />
+                </div>
+
+                {/* --- 5. BOTTONE E SPINNER DI CARICAMENTO --- */}
+                <div className="form-actions">
+                    <button type="submit" className="submit-btn" disabled={loading}>
+                        {loading ? 'Programmazione in corso...' : 'Programma Downtime'}
+                    </button>
+                    
+                    {loading && (
+                        <div className="loader-spinner"></div>
+                    )}
+                </div>
+
+                {/* Messaggi di stato */}
+                {success && <div className="form-message success-message">{success}</div>}
+                {error && <div className="form-message error-message">{error}</div>}
+
+            </form>
+        </div>
+    );
 };
 
 export default DowntimeSchedule;

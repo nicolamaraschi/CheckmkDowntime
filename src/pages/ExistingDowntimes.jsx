@@ -1,125 +1,76 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { useApi } from '../hooks/useApi';
 import '../styles/existingDowntimes.css';
 
 const ExistingDowntimes = () => {
-  const [downtimes, setDowntimes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const api = useApi();
+    const { data: downtimes, loading, error } = useApi('/api/downtimes');
 
-  const fetchDowntimes = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await api.get('/downtimes');
-      setDowntimes(data || []);
-    } catch (err) {
-      console.error("Error fetching downtimes:", err);
-      if (err.message.includes('405')) {
-        setError("L'API per visualizzare i downtime non è ancora disponibile.");
-      } else {
-        setError(err.message || "Si è verificato un errore durante il recupero dei downtime");
-      }
-    } finally {
-      setLoading(false);
+    // Gestione personalizzata dell'errore 404
+    if (error && error.message.includes('404')) {
+        return (
+            <div className="downtime-container">
+                <h1>Downtime Esistenti</h1>
+                <div className="error-card">
+                    <h2>API Non Trovata (Errore 404)</h2>
+                    <p>
+                        Impossibile caricare i downtime esistenti. L'endpoint <code>/api/downtimes</code>
+                        non è al momento disponibile sul server.
+                    </p>
+                    <p>
+                        Questo è probabilmente un problema di configurazione del backend (<code>routes.py</code>)
+                        che dovrà essere corretto.
+                    </p>
+                </div>
+            </div>
+        );
     }
-  }, [api]);
 
-  useEffect(() => {
-    fetchDowntimes();
-  }, [fetchDowntimes]);
-
-  const handleDelete = async (downtimeId) => {
-    if (window.confirm("Sei sicuro di voler cancellare questo downtime?")) {
-      try {
-        await api.del(`/downtime/${downtimeId}`);
-        // Refresh the list after deletion
-        fetchDowntimes();
-      } catch (err) {
-        console.error("Error deleting downtime:", err);
-        setError(err.message || "Errore nella cancellazione del downtime.");
-      }
+    // Gestione altri errori
+    if (error) {
+        return <div className="downtime-container">Errore: {error.message}</div>;
     }
-  };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleString('it-IT', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-  };
+    // Gestione caricamento
+    if (loading) {
+        return <div className="downtime-container">Caricamento downtime...</div>;
+    }
 
-  const getDowntimeStatus = (startTime, endTime) => {
-    const now = new Date();
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-    if (now < start) return 'Pianificato';
-    if (now > end) return 'Scaduto';
-    return 'Attivo';
-  };
-
-  return (
-    <div className="existing-downtimes-container">
-      <h1>Downtime Pianificati</h1>
-      
-      {loading ? (
-        <div className="loading-spinner">Caricamento downtime in corso...</div>
-      ) : error ? (
-        <div className="error-message">{error}</div>
-      ) : downtimes.length === 0 ? (
-        <div className="no-downtimes">
-          <p>Nessun downtime pianificato trovato.</p>
-        </div>
-      ) : (
-        <>
-          <div className="downtime-count">{downtimes.length} downtime trovati</div>
-          <div className="downtimes-table-container">
-            <table className="downtimes-table">
-              <thead>
-                <tr>
-                  <th>Host</th>
-                  <th>Inizio</th>
-                  <th>Fine</th>
-                  <th>Commento</th>
-                  <th>Stato</th>
-                  <th>Azione</th>
-                </tr>
-              </thead>
-              <tbody>
-                {downtimes.map((downtime) => {
-                  const status = getDowntimeStatus(downtime.start_time, downtime.end_time);
-                  return (
-                    <tr key={downtime.id}>
-                      <td>{downtime.host_name}</td>
-                      <td>{formatDate(downtime.start_time)}</td>
-                      <td>{formatDate(downtime.end_time)}</td>
-                      <td>{downtime.comment}</td>
-                      <td>
-                        <span className={`status-badge status-${status.toLowerCase()}`}>
-                          {status}
-                        </span>
-                      </td>
-                      <td>
-                        <button 
-                          onClick={() => handleDelete(downtime.id)}
-                          className="delete-button"
-                          disabled={status === 'Scaduto'}
-                        >
-                          Cancella
-                        </button>
-                      </td>
+    // Se i dati arrivano (quando l'API sarà corretta)
+    return (
+        <div className="downtime-container">
+            <h1>Downtime Esistenti</h1>
+            <table className="downtime-table">
+                <thead>
+                    <tr>
+                        <th>Host</th>
+                        <th>Inizio</th>
+                        <th>Fine</th>
+                        <th>Autore</th>
+                        <th>Commento</th>
+                        {/* <th>Azioni</th> */}
                     </tr>
-                  );
-                })}
-              </tbody>
+                </thead>
+                <tbody>
+                    {downtimes && downtimes.length > 0 ? (
+                        downtimes.map((dt) => (
+                            <tr key={dt.id}>
+                                <td>{dt.host_name}</td>
+                                <td>{new Date(dt.start_time).toLocaleString()}</td>
+                                <td>{new Date(dt.end_time).toLocaleString()}</td>
+                                <td>{dt.created_by}</td>
+                                <td>{dt.comment}</td>
+                                {/* <td><button className="delete-btn">Elimina</button></td> */}
+                            </tr>
+                        ))
+                    ) : (
+                        <tr>
+                            <td colSpan="5">Nessun downtime attivo trovato.</td>
+                        </tr>
+                    )}
+                </tbody>
             </table>
-          </div>
-        </>
-      )}
-    </div>
-  );
+        </div>
+    );
 };
 
 export default ExistingDowntimes;
