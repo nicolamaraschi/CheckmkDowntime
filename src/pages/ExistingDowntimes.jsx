@@ -1,74 +1,84 @@
 import React from 'react';
 import { useApi } from '../hooks/useApi';
 import '../styles/existingDowntimes.css';
+import Loader from '../components/Loader';
 
 const ExistingDowntimes = () => {
-    const { data: downtimes, loading, error } = useApi('/api/downtimes');
+    const { data, loading, error, fromCache } = useApi('downtimes');
 
-    // Gestione personalizzata dell'errore 404
-    if (error && error.message.includes('404')) {
+    if (loading) {
+        return (
+            <div className="downtime-container">
+                <h1>Downtime Esistenti</h1>
+                <Loader text="Caricamento downtimes..." />
+            </div>
+        );
+    }
+
+    if (error) {
         return (
             <div className="downtime-container">
                 <h1>Downtime Esistenti</h1>
                 <div className="error-card">
-                    <h2>API Non Trovata (Errore 404)</h2>
-                    <p>
-                        Impossibile caricare i downtime esistenti. L'endpoint <code>/api/downtimes</code>
-                        non è al momento disponibile sul server.
-                    </p>
-                    <p>
-                        Questo è probabilmente un problema di configurazione del backend (<code>routes.py</code>)
-                        che dovrà essere corretto.
-                    </p>
+                    <h2>Errore nel caricamento</h2>
+                    <p>{error}</p>
                 </div>
             </div>
         );
     }
 
-    // Gestione altri errori
-    if (error) {
-        return <div className="downtime-container">Errore: {error.message}</div>;
-    }
+    const downtimes = data?.downtimes || [];
 
-    // Gestione caricamento
-    if (loading) {
-        return <div className="downtime-container">Caricamento downtime...</div>;
-    }
-
-    // Se i dati arrivano (quando l'API sarà corretta)
     return (
         <div className="downtime-container">
             <h1>Downtime Esistenti</h1>
-            <table className="downtime-table">
-                <thead>
-                    <tr>
-                        <th>Host</th>
-                        <th>Inizio</th>
-                        <th>Fine</th>
-                        <th>Autore</th>
-                        <th>Commento</th>
-                        {/* <th>Azioni</th> */}
-                    </tr>
-                </thead>
-                <tbody>
-                    {downtimes && downtimes.length > 0 ? (
-                        downtimes.map((dt) => (
-                            <tr key={dt.id}>
-                                <td>{dt.host_name}</td>
-                                <td>{new Date(dt.start_time).toLocaleString()}</td>
-                                <td>{new Date(dt.end_time).toLocaleString()}</td>
-                                <td>{dt.created_by}</td>
-                                <td>{dt.comment}</td>
-                                {/* <td><button className="delete-btn">Elimina</button></td> */}
-                            </tr>
-                        ))
-                    ) : (
+            {fromCache && (
+                <div style={{
+                    padding: '10px',
+                    backgroundColor: '#e7f3ff',
+                    borderRadius: '4px',
+                    marginBottom: '20px',
+                    fontSize: '14px',
+                    color: '#0066cc'
+                }}>
+                    ℹ️ Dati caricati dalla cache
+                </div>
+            )}
+            
+            {downtimes.length === 0 ? (
+                <div style={{
+                    padding: '20px',
+                    textAlign: 'center',
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: '8px',
+                    marginTop: '20px'
+                }}>
+                    <p>Nessun downtime attivo trovato.</p>
+                </div>
+            ) : (
+                <table className="downtime-table">
+                    <thead>
                         <tr>
-                            <td colSpan="5">Nessun downtime attivo trovato.</td>
+                            <th>Host</th>
+                            <th>Inizio</th>
+                            <th>Fine</th>
+                            <th>Autore</th>
+                            <th>Commento</th>
                         </tr>
-                    )}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {downtimes.map((dt, idx) => (
+                            <tr key={idx}>
+                                <td>{dt.extensions?.host_name || 'N/A'}</td>
+                                <td>{dt.extensions?.start_time ? new Date(dt.extensions.start_time).toLocaleString() : 'N/A'}</td>
+                                <td>{dt.extensions?.end_time ? new Date(dt.extensions.end_time).toLocaleString() : 'N/A'}</td>
+                                <td>{dt.extensions?.author || 'N/A'}</td>
+                                <td>{dt.extensions?.comment || 'N/A'}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            )}
         </div>
     );
 };

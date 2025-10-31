@@ -190,6 +190,52 @@ async def get_stats(request: Request, token: str = Depends(get_current_user)):
             detail=error_msg
         )
 
+@router.get("/downtimes")
+async def get_downtimes(request: Request, token: str = Depends(get_current_user)):
+    request_id = f"req-{int(time.time())}"
+    logger.info(f"[{request_id}] GET /downtimes - Request received")
+    
+    config = get_checkmk_config()
+    api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
+    
+    try:
+        logger.info(f"[{request_id}] Connecting to Checkmk API: {api_url}")
+        
+        session = requests.session()
+        session.headers['Authorization'] = f"Bearer {config['user']} {config['password']}"
+        session.headers['Accept'] = 'application/json'
+        
+        start_time = time.time()
+        resp = session.get(
+            f"{api_url}/domain-types/downtime/collections/all",
+            params={"site_id": config['site']},
+            timeout=30
+        )
+        response_time = time.time() - start_time
+        
+        logger.info(f"[{request_id}] API response received in {response_time:.2f}s with status: {resp.status_code}")
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            downtimes = data.get('value', [])
+            
+            logger.info(f"[{request_id}] Successfully retrieved {len(downtimes)} downtimes")
+            return {"downtimes": downtimes}
+        else:
+            logger.error(f"[{request_id}] API error: {resp.status_code} - {resp.text}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error from Checkmk API: {resp.status_code} - {resp.text}"
+            )
+    except Exception as e:
+        error_msg = f"Failed to fetch downtimes: {str(e)}"
+        logger.error(f"[{request_id}] {error_msg}")
+        logger.error(f"[{request_id}] {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error_msg
+        )
+
 async def post_downtime(
     session: httpx.AsyncClient, 
     url: str, 

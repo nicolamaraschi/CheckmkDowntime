@@ -1,89 +1,47 @@
-.existing-downtimes-container {
-  padding: 20px;
+.downtime-container {
+    padding: 20px;
 }
 
-.loading-spinner {
-  margin: 40px 0;
-  text-align: center;
-  font-style: italic;
-  color: #666;
+.error-card {
+    background-color: #ffeeee;
+    border-left: 5px solid #dd0000;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 20px;
 }
 
-.error-message {
-  margin: 20px 0;
-  padding: 15px;
-  background-color: #ffeeee;
-  border-left: 5px solid #dd0000;
-  border-radius: 4px;
+.error-card h2 {
+    margin-top: 0;
+    color: #dd0000;
 }
 
-.no-downtimes {
-  margin: 30px 0;
-  padding: 20px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  text-align: center;
-  color: #666;
+.downtime-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 20px;
 }
 
-.downtime-count {
-  margin-bottom: 20px;
-  color: #666;
-  font-size: 0.9rem;
+.downtime-table th {
+    background-color: #f0f0f0;
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 2px solid #ddd;
+    font-weight: 600;
 }
 
-.downtimes-table-container {
-  overflow-x: auto;
+.downtime-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
 }
 
-.downtimes-table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  overflow: hidden;
+.downtime-table tr:last-child td {
+    border-bottom: none;
 }
 
-.downtimes-table th {
-  background-color: #f0f0f0;
-  padding: 12px 15px;
-  text-align: left;
-  border-bottom: 2px solid #ddd;
-}
-
-.downtimes-table td {
-  padding: 12px 15px;
-  border-bottom: 1px solid #eee;
-}
-
-.downtimes-table tr:last-child td {
-  border-bottom: none;
-}
-
-.downtimes-table tr:hover {
-  background-color: #f8f9fa;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.status-attivo {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.status-pianificato {
-  background-color: #d1ecf1;
-  color: #0c5460;
-}
-
-.status-scaduto {
-  background-color: #f8d7da;
-  color: #721c24;
+.downtime-table tr:hover {
+    background-color: #f8f9fa;
 }
