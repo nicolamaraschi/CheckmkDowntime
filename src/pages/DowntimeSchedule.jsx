@@ -4,7 +4,6 @@ import HostSelector from '../components/HostSelector';
 import WeekdayPicker from '../components/WeekdayPicker';
 import TimePicker from '../components/TimePicker';
 import '../styles/downtimeSchedule.css';
-import '../styles/loader.css';
 import Loader from '../components/Loader';
 
 const DowntimeSchedule = () => {
@@ -48,7 +47,6 @@ const DowntimeSchedule = () => {
         };
 
         try {
-            // Corretto URL dell'API con prefisso /api
             const response = await fetch('/api/schedule', {
                 method: 'POST',
                 headers: {
@@ -67,9 +65,9 @@ const DowntimeSchedule = () => {
             const errorsInResponses = result.responses.filter(r => r !== 'Done');
             if (errorsInResponses.length > 0) {
                 const firstError = errorsInResponses[0];
-                setError(`Operazione completata, ma con ${errorsInResponses.length} errori. (Es: ${firstError})`);
+                setError(`Operazione completata con ${errorsInResponses.length} errori. Primo errore: ${firstError}`);
             } else {
-                setSuccess(`Downtime programmato con successo per ${selectedHost}!`);
+                setSuccess(`✓ Downtime programmato con successo per ${selectedHost}! (${result.responses.length} slot creati)`);
                 setSelectedHost('');
                 setWeekdays([]);
                 setRecurrence(0);
@@ -86,34 +84,49 @@ const DowntimeSchedule = () => {
     if (loading) {
         return (
             <div className="downtime-container">
-                <h1>Programmazione Downtime in corso</h1>
-                <Loader text="Programmazione in corso, attendere prego... (fino a 30s)" />
+                <h1>⏳ Programmazione in corso...</h1>
+                <Loader text="Creazione downtime in corso. Questo può richiedere fino a 30 secondi." />
+                <div style={{ 
+                    textAlign: 'center', 
+                    marginTop: '20px', 
+                    color: '#6c757d',
+                    fontSize: '0.95rem'
+                }}>
+                    <p>Non chiudere questa pagina.</p>
+                </div>
             </div>
         );
     }
 
     return (
         <div className="downtime-container">
-            <h1>Programma Downtime</h1>
+            <h1>📅 Programma Downtime</h1>
+            
             <form className="downtime-form" onSubmit={handleSubmit}>
                 
                 <div className="form-group">
-                    <label>Host</label>
+                    <label className="required-field">Host</label>
                     <HostSelector selectedHost={selectedHost} setSelectedHost={setSelectedHost} />
+                    {selectedHost && (
+                        <span className="info-badge">Host selezionato: {selectedHost}</span>
+                    )}
                 </div>
 
                 <div className="form-group">
-                    <label>Giorni della settimana</label>
+                    <label className="required-field">Giorni della settimana</label>
                     <WeekdayPicker value={weekdays} onChange={setWeekdays} />
+                    {weekdays.length > 0 && (
+                        <span className="info-badge">{weekdays.length} giorn{weekdays.length === 1 ? 'o' : 'i'} selezionat{weekdays.length === 1 ? 'o' : 'i'}</span>
+                    )}
                 </div>
 
                 <div className="time-group">
                     <div className="form-group">
-                        <label>Ora Inizio (HH:MM)</label>
+                        <label className="required-field">Ora Inizio (HH:MM)</label>
                         <TimePicker value={startTime} onChange={setStartTime} />
                     </div>
                     <div className="form-group">
-                        <label>Ora Fine (HH:MM)</label>
+                        <label className="required-field">Ora Fine (HH:MM)</label>
                         <TimePicker value={endTime} onChange={setEndTime} />
                     </div>
                 </div>
@@ -126,7 +139,11 @@ const DowntimeSchedule = () => {
                         max="365"
                         value={recurrence} 
                         onChange={(e) => setRecurrence(parseInt(e.target.value))}
+                        placeholder="0 = solo oggi"
                     />
+                    <span className="info-badge">
+                        {recurrence === 0 ? 'Solo oggi' : `Si ripeterà per ${recurrence} giorni`}
+                    </span>
                 </div>
 
                 <div className="form-group">
@@ -136,12 +153,13 @@ const DowntimeSchedule = () => {
                         value={commento} 
                         onChange={(e) => setCommento(e.target.value)}
                         placeholder="Es. Manutenzione programmata"
+                        maxLength={200}
                     />
                 </div>
 
                 <div className="form-actions">
                     <button type="submit" className="submit-btn">
-                        Programma Downtime
+                        🚀 Programma Downtime
                     </button>
                 </div>
 
