@@ -2,11 +2,9 @@ import React from 'react';
 import { useApi } from '../hooks/useApi';
 
 const HostSelector = ({ selectedHost, setSelectedHost }) => {
-    // Rimosso "/api" dal percorso - useApi lo aggiungerà
     const { data, loading, error } = useApi('hosts');
     
-    // Estrai la lista di host, ordina alfabeticamente
-    const hosts = data ? [...data.hosts].sort() : [];
+    const hosts = data ? [...data].sort() : [];
 
     const handleChange = (e) => {
         setSelectedHost(e.target.value);
@@ -15,7 +13,7 @@ const HostSelector = ({ selectedHost, setSelectedHost }) => {
     if (loading) {
         return (
             <select disabled>
-                <option>Caricamento host in corso (può richiedere fino a 30s)...</option>
+                <option>Caricamento host in corso...</option>
             </select>
         );
     }
@@ -23,7 +21,7 @@ const HostSelector = ({ selectedHost, setSelectedHost }) => {
     if (error) {
         return (
             <select disabled style={{ borderColor: 'red' }}>
-                <option>Errore nel caricamento host: {error.message}</option>
+                <option>Errore nel caricamento host: {error}</option>
             </select>
         );
     }

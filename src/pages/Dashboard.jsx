@@ -4,8 +4,7 @@ import { useApi } from '../hooks/useApi';
 import Loader from '../components/Loader';
 
 const Dashboard = () => {
-    // Rimosso "/api" dal percorso - useApi lo aggiungerà
-    const { data: stats, loading, error } = useApi('stats');
+    const { data: stats, loading, error, fromCache } = useApi('stats');
 
     if (loading) {
         return (
@@ -16,12 +15,24 @@ const Dashboard = () => {
     }
 
     if (error) {
-        return <div className="dashboard-container">Errore nel caricamento: {error.message}</div>;
+        return <div className="dashboard-container">Errore nel caricamento: {error}</div>;
     }
 
     return (
         <div className="dashboard-container">
             <h1 className="dashboard-title">Dashboard</h1>
+            {fromCache && (
+                <div style={{
+                    padding: '10px',
+                    backgroundColor: '#e7f3ff',
+                    borderRadius: '4px',
+                    marginBottom: '20px',
+                    fontSize: '14px',
+                    color: '#0066cc'
+                }}>
+                    ℹ️ Dati caricati dalla cache
+                </div>
+            )}
             <div className="stats-container">
                 <div className="stat-card">
                     <h2 className="stat-title">Host Totali</h2>

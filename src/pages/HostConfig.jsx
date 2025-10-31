@@ -4,10 +4,8 @@ import '../styles/hostConfig.css';
 import Loader from '../components/Loader';
 
 const HostConfig = () => {
-  // Usa la versione corretta dell'endpoint (senza /api)
-  const { data, loading, error } = useApi('hosts');
+  const { data, loading, error, fromCache } = useApi('hosts');
   
-  // Stato di caricamento
   if (loading) {
     return (
       <div className="host-config-container">
@@ -17,7 +15,6 @@ const HostConfig = () => {
     );
   }
   
-  // Gestione errori
   if (error) {
     return (
       <div className="host-config-container">
@@ -30,26 +27,30 @@ const HostConfig = () => {
     );
   }
 
-  // CORREZIONE: Gestisci i diversi formati della risposta API
-  // La risposta potrebbe essere { hosts: [...] } o direttamente l'array di hosts
   let hosts = [];
   if (data) {
     if (Array.isArray(data)) {
-      // Se data è direttamente un array
       hosts = data;
     } else if (data.hosts && Array.isArray(data.hosts)) {
-      // Se data ha una proprietà hosts che è un array
       hosts = data.hosts;
-    } else {
-      // Prova a ispezionare altre proprietà se disponibili
-      console.log("Formato risposta API inatteso:", data);
     }
   }
 
   return (
     <div className="host-config-container">
       <h1>Configurazione Host</h1>
-      
+      {fromCache && (
+        <div style={{
+          padding: '10px',
+          backgroundColor: '#e7f3ff',
+          borderRadius: '4px',
+          marginBottom: '20px',
+          fontSize: '14px',
+          color: '#0066cc'
+        }}>
+          ℹ️ Dati caricati dalla cache
+        </div>
+      )}
       <div className="host-count">
         {hosts.length} host disponibili
       </div>

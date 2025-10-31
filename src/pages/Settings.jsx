@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../auth/AuthProvider';
+import { useApiCache } from '../contexts/ApiCacheContext';
 import '../styles/settings.css';
 import Loader from '../components/Loader';
 
 const Settings = () => {
   const { user } = useAuth();
+  const { clearCache, cache } = useApiCache();
   const [connectionInfo, setConnectionInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,7 +14,6 @@ const Settings = () => {
   const fetchConnectionInfo = useCallback(async () => {
     try {
       setLoading(true);
-      // Corretto URL dell'API
       const response = await fetch('/api/connection-test');
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
@@ -32,6 +33,13 @@ const Settings = () => {
   useEffect(() => {
     fetchConnectionInfo();
   }, [fetchConnectionInfo]);
+
+  const handleClearCache = () => {
+    clearCache();
+    alert('Cache svuotata con successo!');
+  };
+
+  const cacheSize = Object.keys(cache).length;
   
   if (loading) {
     return (
@@ -54,6 +62,30 @@ const Settings = () => {
             <p><strong>Email:</strong> {user.attributes?.email}</p>
           </div>
         )}
+      </div>
+
+      <div className="settings-section">
+        <h2>Gestione Cache</h2>
+        <div className="cache-info">
+          <p><strong>Elementi in cache:</strong> {cacheSize}</p>
+          <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '15px' }}>
+            La cache velocizza l'applicazione salvando i dati già caricati.
+          </p>
+          <button 
+            className="retry-button" 
+            onClick={handleClearCache}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Svuota Cache
+          </button>
+        </div>
       </div>
       
       <div className="settings-section">
