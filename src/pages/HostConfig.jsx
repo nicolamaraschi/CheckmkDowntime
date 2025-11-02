@@ -30,9 +30,20 @@ const HostConfig = () => {
   let hosts = [];
   if (data) {
     if (Array.isArray(data)) {
-      hosts = data;
+      // Handle both old format (strings) and new format (objects with id and folder)
+      hosts = data.map(item => {
+        if (typeof item === 'string') {
+          return { id: item, folder: '/' };
+        }
+        return item;
+      });
     } else if (data.hosts && Array.isArray(data.hosts)) {
-      hosts = data.hosts;
+      hosts = data.hosts.map(item => {
+        if (typeof item === 'string') {
+          return { id: item, folder: '/' };
+        }
+        return item;
+      });
     }
   }
 
@@ -54,11 +65,14 @@ const HostConfig = () => {
       <div className="host-count">
         {hosts.length} host disponibili
       </div>
-      
+
       <div className="hosts-grid">
         {hosts.map(host => (
-          <div key={host} className="host-card">
-            <h3>{host}</h3>
+          <div key={host.id} className="host-card">
+            <h3>{host.id}</h3>
+            <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '8px' }}>
+              Cliente: {host.folder}
+            </p>
           </div>
         ))}
       </div>
