@@ -1,72 +1,70 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../auth/AuthProvider';
 import { useApi } from '../hooks/useApi';
 import '../styles/existingDowntimes.css';
 import Loader from '../components/Loader';
 import ClientSelector from '../components/ClientSelector';
 import HostSelector from '../components/HostSelector';
-import { useAuth } from '../auth/AuthProvider';
 
 const ExistingDowntimes = () => {
     const [selectedClient, setSelectedClient] = useState('');
     const [selectedHost, setSelectedHost] = useState('');
     const [downtimes, setDowntimes] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [fromCache, setFromCache] = useState(false);
     
-    const { data: hostsData, loading: hostsLoading } = useApi('hosts');
+    const { data: hostsData, loading: hostsLoading, error: hostsError } = useApi('hosts');
     const { token } = useAuth();
     
-    // Carica i downtime con filtri applicati
-    useEffect(() => {
-        const fetchDowntimes = async () => {
-            if (hostsLoading) return; // Aspetta che i dati degli host siano caricati
-            
-            setIsLoading(true);
-            setError(null);
-            
-            try {
-                // Costruisci l'URL con i parametri di query
-                let url = '/api/downtimes';
-                const queryParams = [];
-                
-                if (selectedHost) {
-                    queryParams.push(`host=${encodeURIComponent(selectedHost)}`);
-                } else if (selectedClient) {
-                    queryParams.push(`client=${encodeURIComponent(selectedClient)}`);
-                }
-                
-                if (queryParams.length > 0) {
-                    url += '?' + queryParams.join('&');
-                }
-                
-                const response = await fetch(url, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Errore API: ${response.status}`);
-                }
-                
-                const result = await response.json();
-                setDowntimes(result.downtimes || []);
-                setFromCache(result.fromCache || false);
-                
-            } catch (err) {
-                console.error('Errore nel caricamento dei downtime:', err);
-                setError(err.message || 'Si è verificato un errore nel caricamento dei downtime');
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    // Funzione per recuperare i downtime di un host specifico
+    const fetchHostDowntimes = async (hostname) => {
+        setIsLoading(true);
+        setError(null);
         
-        fetchDowntimes();
+        try {
+            // Usa il token di autenticazione dal contesto
+            const response = await fetch(`/api/downtimes?host=${encodeURIComponent(hostname)}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Errore: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            setDowntimes(data.downtimes || []);
+            setFromCache(data.fromCache || false);
+            
+        } catch (err) {
+            console.error("Errore nel recupero dei downtime:", err);
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    // Recupera tutti i downtime o solo quelli dell'host selezionato
+    useEffect(() => {
+        if (hostsLoading) return;
+        
+        if (selectedHost) {
+            // Se è selezionato un host specifico, carica i suoi downtime
+            fetchHostDowntimes(selectedHost);
+        } else if (selectedClient) {
+            // Se è selezionato solo un cliente, non possiamo filtrare direttamente
+            // nell'API, quindi mostreremo un messaggio informativo
+            setDowntimes([]);
+        } else {
+            // Se non è selezionato nulla, mostra che deve essere selezionato un host
+            setDowntimes([]);
+        }
     }, [selectedClient, selectedHost, hostsLoading, token]);
     
-    // Crea una mappa degli host per ottenere le informazioni sul cliente
+    // Crea mappa degli host
     const hostFolderMap = React.useMemo(() => {
         const map = new Map();
         if (hostsData) {
@@ -95,27 +93,29 @@ const ExistingDowntimes = () => {
         }).length;
     }, [downtimes]);
     
+    // Reset dei filtri
     const handleReset = () => {
         setSelectedClient('');
         setSelectedHost('');
+        setDowntimes([]);
     };
     
-    if (isLoading || hostsLoading) {
+    if (hostsLoading || isLoading) {
         return (
             <div className="downtime-container">
                 <h1>Downtime Esistenti</h1>
-                <Loader text="Caricamento downtimes..." />
+                <Loader text="Caricamento..." />
             </div>
         );
     }
     
-    if (error) {
+    if (hostsError || error) {
         return (
             <div className="downtime-container">
                 <h1>Downtime Esistenti</h1>
                 <div className="error-card">
-                    <h2>Errore nel caricamento</h2>
-                    <p>{error}</p>
+                    <h2>Errore</h2>
+                    <p>{hostsError || error}</p>
                 </div>
             </div>
         );
@@ -161,14 +161,20 @@ const ExistingDowntimes = () => {
                 </div>
             </div>
             
-            {downtimes.length === 0 ? (
-                <div className="no-results">
-                    <p>Nessun downtime trovato con i filtri selezionati.</p>
+            {!selectedHost && (
+                <div className="filter-notice">
+                    <p>Seleziona un host specifico per visualizzare i suoi downtime.</p>
                 </div>
-            ) : (
+            )}
+            
+            {selectedHost && downtimes.length === 0 ? (
+                <div className="no-results">
+                    <p>Nessun downtime trovato per l'host selezionato.</p>
+                </div>
+            ) : selectedHost && downtimes.length > 0 ? (
                 <>
                     <div className="results-count">
-                        Trovati {downtimes.length} downtime totali, di cui {activeDowntimes} attualmente attivi
+                        Trovati {downtimes.length} downtime per {selectedHost}, di cui {activeDowntimes} attualmente attivi
                     </div>
                     <table className="downtime-table">
                         <thead>
@@ -206,7 +212,7 @@ const ExistingDowntimes = () => {
                         </tbody>
                     </table>
                 </>
-            )}
+            ) : null}
         </div>
     );
 };

@@ -245,9 +245,13 @@ async def get_stats(request: Request, token: str = Depends(get_current_user)):
         )
 
 @router.get("/downtimes")
-async def get_downtimes(request: Request, token: str = Depends(get_current_user)):
+async def get_downtimes(
+    request: Request, 
+    token: str = Depends(get_current_user),
+    host: str = None
+):
     request_id = f"req-{int(time.time())}"
-    logger.info(f"[{request_id}] GET /downtimes - Request received")
+    logger.info(f"[{request_id}] GET /downtimes - Request received with host={host}")
     
     config = get_checkmk_config()
     api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
@@ -259,10 +263,16 @@ async def get_downtimes(request: Request, token: str = Depends(get_current_user)
         session.headers['Authorization'] = f"Bearer {config['user']} {config['password']}"
         session.headers['Accept'] = 'application/json'
         
+        # Costruisci i parametri di query
+        query_params = {"site_id": config['site']}
+        if host:
+            query_params["host_name"] = host
+        
+        # Esegui la richiesta all'API di Checkmk
         start_time = time.time()
         resp = session.get(
             f"{api_url}/domain-types/downtime/collections/all",
-            params={"site_id": config['site']},
+            params=query_params,
             timeout=30
         )
         response_time = time.time() - start_time
@@ -289,32 +299,6 @@ async def get_downtimes(request: Request, token: str = Depends(get_current_user)
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg
         )
-
-async def post_downtime(
-    session: httpx.AsyncClient, 
-    url: str, 
-    payload: dict, 
-    request_id: str, 
-    index: int, 
-    total: int
-) -> str:
-    logger.info(f"[{request_id}] Request {index+1}/{total}: Scheduling downtime for {payload['host_name']} from {payload['start_time']} to {payload['end_time']}")
-    logger.debug(f"[{request_id}] Request payload: {payload}")
-    
-    try:
-        resp = await session.post(url, json=payload, timeout=30.0) 
-        
-        if resp.status_code == 200 or resp.status_code == 204:
-            logger.info(f"[{request_id}] Request {index+1} succeeded (Status: {resp.status_code})")
-            return "Done"
-        else:
-            error_msg = f"Error {resp.status_code}"
-            logger.error(f"[{request_id}] Request {index+1} failed: {error_msg} - {resp.text}")
-            return error_msg
-    except Exception as e:
-        error_msg = f"Request failed: {str(e)}"
-        logger.error(f"[{request_id}] Request {index+1} failed with exception: {str(e)}")
-        return error_msg
 
 @router.post("/schedule", response_model=DowntimeResponse)
 async def schedule_downtime(request: Request, req: DowntimeRequest, token: str = Depends(get_current_user)):
