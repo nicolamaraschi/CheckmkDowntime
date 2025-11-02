@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from typing import List, Dict, Any, Optional
-import requests
-import httpx
+import requests  # Lo manteniamo se serve altrove, ma non per le chiamate API
+import httpx     # Importiamo httpx
 import asyncio
 import os
 import logging
@@ -25,18 +25,58 @@ def get_checkmk_config():
     }
     return config
 
+# Metti questa funzione helper vicino all'inizio del file, dopo get_checkmk_config()
+
+async def get_all_hosts_map(config: dict, headers: dict) -> Dict[str, str]:
+    """
+    Recupera tutti gli host e crea una mappa {host_name: folder}.
+    Questa funzione è asincrona e riutilizzabile.
+    """
+    api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
+    logger.info("[Helper] Fetching host map...")
+    
+    try:
+        async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
+            resp = await session.get(
+                f"{api_url}/domain-types/host_config/collections/all",
+                params={"effective_attributes": False}
+            )
+        resp.raise_for_status()
+        
+        host_map = {}
+        data = resp.json()
+        for item in data['value']:
+            host_id = item['id']
+            folder = item['extensions'].get('folder', '/')
+            host_map[host_id] = folder
+            
+        logger.info(f"[Helper] Host map created with {len(host_map)} entries.")
+        return host_map
+    except httpx.HTTPStatusError as e:
+        logger.error(f"[Helper] API error fetching hosts: {e.response.status_code} - {e.response.text}")
+        return {}
+    except Exception as e:
+        logger.error(f"[Helper] Generic error fetching hosts: {type(e).__name__} - {str(e)}")
+        logger.error(f"[Helper] Traceback: {traceback.format_exc()}")
+        return {}
+
 async def test_checkmk_connection() -> Dict[str, str]:
     try:
         logger.info("Testing connection to Checkmk server...")
         config = get_checkmk_config()
         api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
         
-        session = requests.session()
-        session.headers['Authorization'] = f"Bearer {config['user']} {config['password']}"
-        session.headers['Accept'] = 'application/json'
+        headers = {
+            'Authorization': f"Bearer {config['user']} {config['password']}",
+            'Accept': 'application/json'
+        }
         
         start_time = time.time()
-        resp = session.get(f"{api_url}/version", timeout=10)
+        
+        # --- MODIFICA: Usiamo httpx asincrono ---
+        async with httpx.AsyncClient(headers=headers, timeout=10.0) as session:
+            resp = await session.get(f"{api_url}/version")
+        
         response_time = time.time() - start_time
         
         if resp.status_code == 200:
@@ -98,41 +138,47 @@ async def get_hosts(request: Request, token: str = Depends(get_current_user)):
     config = get_checkmk_config()
     api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
     
+    headers = {
+        'Authorization': f"Bearer {config['user']} {config['password']}",
+        'Accept': 'application/json'
+    }
+    
     try:
-        logger.info(f"[{request_id}] Connecting to Checkmk API: {api_url}")
+        logger.info(f"[{request_id}] Connecting to Checkmk API (async): {api_url}")
         
-        session = requests.session()
-        session.headers['Authorization'] = f"Bearer {config['user']} {config['password']}"
-        session.headers['Accept'] = 'application/json'
-        
-        start_time = time.time()
-        resp = session.get(
-            f"{api_url}/domain-types/host_config/collections/all",
-            params={"effective_attributes": False},
-            timeout=30
-        )
-        response_time = time.time() - start_time
+        # --- MODIFICA: Usiamo httpx asincrono ---
+        async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
+            start_time = time.time()
+            resp = await session.get(
+                f"{api_url}/domain-types/host_config/collections/all",
+                params={"effective_attributes": False}
+            )
+            response_time = time.time() - start_time
         
         logger.info(f"[{request_id}] API response received in {response_time:.2f}s with status: {resp.status_code}")
         
-        if resp.status_code == 200:
-            host_list = []
-            data = resp.json()
-            for item in data['value']:
-                host_obj = {
-                    'id': item['id'],
-                    'folder': item['extensions'].get('folder', '/')
-                }
-                host_list.append(host_obj)
+        # Aggiungiamo il controllo dello stato
+        resp.raise_for_status()
+        
+        host_list = []
+        data = resp.json()
+        for item in data['value']:
+            host_obj = {
+                'id': item['id'],
+                'folder': item['extensions'].get('folder', '/')
+            }
+            host_list.append(host_obj)
 
-            logger.info(f"[{request_id}] Successfully retrieved {len(host_list)} hosts")
-            return {"hosts": host_list}
-        else:
-            logger.error(f"[{request_id}] API error: {resp.status_code} - {resp.text}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error from Checkmk API: {resp.status_code} - {resp.text}"
-            )
+        logger.info(f"[{request_id}] Successfully retrieved {len(host_list)} hosts")
+        return {"hosts": host_list}
+
+    # Gestione errori migliorata
+    except httpx.HTTPStatusError as e:
+        logger.error(f"[{request_id}] API error: {e.response.status_code} - {e.response.text}")
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error from Checkmk API: {e.response.status_code} - {e.response.text}"
+        )
     except Exception as e:
         error_msg = f"Failed to fetch hosts: {str(e)}"
         logger.error(f"[{request_id}] {error_msg}")
@@ -150,39 +196,45 @@ async def get_clients(request: Request, token: str = Depends(get_current_user)):
     config = get_checkmk_config()
     api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
 
+    headers = {
+        'Authorization': f"Bearer {config['user']} {config['password']}",
+        'Accept': 'application/json'
+    }
+
     try:
-        logger.info(f"[{request_id}] Connecting to Checkmk API: {api_url}")
+        logger.info(f"[{request_id}] Connecting to Checkmk API (async): {api_url}")
 
-        session = requests.session()
-        session.headers['Authorization'] = f"Bearer {config['user']} {config['password']}"
-        session.headers['Accept'] = 'application/json'
-
-        start_time = time.time()
-        resp = session.get(
-            f"{api_url}/domain-types/host_config/collections/all",
-            params={"effective_attributes": False},
-            timeout=30
-        )
-        response_time = time.time() - start_time
+        # --- MODIFICA: Usiamo httpx asincrono ---
+        async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
+            start_time = time.time()
+            resp = await session.get(
+                f"{api_url}/domain-types/host_config/collections/all",
+                params={"effective_attributes": False}
+            )
+            response_time = time.time() - start_time
 
         logger.info(f"[{request_id}] API response received in {response_time:.2f}s with status: {resp.status_code}")
+        
+        # Aggiungiamo il controllo dello stato
+        resp.raise_for_status()
 
-        if resp.status_code == 200:
-            data = resp.json()
-            folders = set()
-            for item in data['value']:
-                folder = item['extensions'].get('folder', '/')
-                folders.add(folder)
+        data = resp.json()
+        folders = set()
+        for item in data['value']:
+            folder = item['extensions'].get('folder', '/')
+            folders.add(folder)
 
-            client_list = sorted(list(folders))
-            logger.info(f"[{request_id}] Successfully retrieved {len(client_list)} unique clients")
-            return {"clients": client_list}
-        else:
-            logger.error(f"[{request_id}] API error: {resp.status_code} - {resp.text}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error from Checkmk API: {resp.status_code} - {resp.text}"
-            )
+        client_list = sorted(list(folders))
+        logger.info(f"[{request_id}] Successfully retrieved {len(client_list)} unique clients")
+        return {"clients": client_list}
+        
+    # Gestione errori migliorata
+    except httpx.HTTPStatusError as e:
+        logger.error(f"[{request_id}] API error: {e.response.status_code} - {e.response.text}")
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error from Checkmk API: {e.response.status_code} - {e.response.text}"
+        )
     except Exception as e:
         error_msg = f"Failed to fetch clients: {str(e)}"
         logger.error(f"[{request_id}] {error_msg}")
@@ -200,41 +252,47 @@ async def get_stats(request: Request, token: str = Depends(get_current_user)):
     config = get_checkmk_config()
     api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
     
+    headers = {
+        'Authorization': f"Bearer {config['user']} {config['password']}",
+        'Accept': 'application/json'
+    }
+    
     try:
-        logger.info(f"[{request_id}] Connecting to Checkmk API: {api_url}")
+        logger.info(f"[{request_id}] Connecting to Checkmk API (async): {api_url}")
         
-        session = requests.session()
-        session.headers['Authorization'] = f"Bearer {config['user']} {config['password']}"
-        session.headers['Accept'] = 'application/json'
+        # --- MODIFICA: Usiamo httpx asincrono ---
+        async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
+            logger.info(f"[{request_id}] Fetching hosts data...")
+            start_time = time.time()
+            hosts_resp = await session.get(
+                f"{api_url}/domain-types/host_config/collections/all",
+                params={"effective_attributes": False}
+            )
+            hosts_time = time.time() - start_time
         
-        logger.info(f"[{request_id}] Fetching hosts data...")
-        start_time = time.time()
-        hosts_resp = session.get(
-            f"{api_url}/domain-types/host_config/collections/all",
-            params={"effective_attributes": False},
-            timeout=30
-        )
-        hosts_time = time.time() - start_time
         logger.info(f"[{request_id}] Hosts data received in {hosts_time:.2f}s with status: {hosts_resp.status_code}")
         
-        if hosts_resp.status_code == 200:
-            hosts_data = hosts_resp.json()
-            host_count = len(hosts_data['value']) if 'value' in hosts_data else 0
-            
-            logger.info(f"[{request_id}] Successfully retrieved stats: {host_count} hosts")
-            
-            return {
-                "totalHosts": host_count,
-                "activeDowntimes": 0
-            }
-        else:
-            error_msg = f"Hosts API error: {hosts_resp.status_code}"
-            logger.error(f"[{request_id}] API errors: {error_msg}")
-            
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error fetching data from Checkmk API: {error_msg}"
-            )
+        # Aggiungiamo il controllo dello stato
+        hosts_resp.raise_for_status()
+        
+        hosts_data = hosts_resp.json()
+        host_count = len(hosts_data['value']) if 'value' in hosts_data else 0
+        
+        logger.info(f"[{request_id}] Successfully retrieved stats: {host_count} hosts")
+        
+        return {
+            "totalHosts": host_count,
+            "activeDowntimes": 0
+        }
+    
+    # Gestione errori migliorata
+    except httpx.HTTPStatusError as e:
+        error_msg = f"Hosts API error: {e.response.status_code} - {e.response.text}"
+        logger.error(f"[{request_id}] API errors: {error_msg}")
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error fetching data from Checkmk API: {error_msg}"
+        )
     except Exception as e:
         error_msg = f"Failed to fetch stats: {str(e)}"
         logger.error(f"[{request_id}] {error_msg}")
@@ -244,53 +302,110 @@ async def get_stats(request: Request, token: str = Depends(get_current_user)):
             detail=error_msg
         )
 
+# Questa è la tua funzione get_downtimes MODIFICATA
 @router.get("/downtimes")
 async def get_downtimes(
     request: Request, 
     token: str = Depends(get_current_user),
-    host: str = None
+    host: str = None,      # Parametro per host singolo
+    cliente: str = None  # NUOVO parametro per cliente/folder
 ):
     request_id = f"req-{int(time.time())}"
-    logger.info(f"[{request_id}] GET /downtimes - Request received with host={host}")
+    logger.info(f"[{request_id}] GET /downtimes - host={host}, cliente={cliente}")
     
     config = get_checkmk_config()
     api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
     
+    headers = {
+        'Authorization': f"Bearer {config['user']} {config['password']}",
+        'Accept': 'application/json'
+    }
+
     try:
-        logger.info(f"[{request_id}] Connecting to Checkmk API: {api_url}")
+        all_downtimes = []
         
-        session = requests.session()
-        session.headers['Authorization'] = f"Bearer {config['user']} {config['password']}"
-        session.headers['Accept'] = 'application/json'
-        
-        # Costruisci i parametri di query
-        query_params = {"site_id": config['site']}
-        if host:
-            query_params["host_name"] = host
-        
-        # Esegui la richiesta all'API di Checkmk
-        start_time = time.time()
-        resp = session.get(
-            f"{api_url}/domain-types/downtime/collections/all",
-            params=query_params,
-            timeout=30
-        )
-        response_time = time.time() - start_time
-        
-        logger.info(f"[{request_id}] API response received in {response_time:.2f}s with status: {resp.status_code}")
-        
-        if resp.status_code == 200:
-            data = resp.json()
-            downtimes = data.get('value', [])
+        # Timeout aumentato a 300 secondi (5 minuti)
+        async with httpx.AsyncClient(headers=headers, timeout=300.0) as session:
             
-            logger.info(f"[{request_id}] Successfully retrieved {len(downtimes)} downtimes")
-            return {"downtimes": downtimes}
-        else:
-            logger.error(f"[{request_id}] API error: {resp.status_code} - {resp.text}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error from Checkmk API: {resp.status_code} - {resp.text}"
-            )
+            if cliente:
+                # --- LOGICA PER CLIENTE ---
+                logger.info(f"[{request_id}] Filtering by cliente: {cliente}")
+                
+                # 1. Otteniamo la mappa di tutti gli host
+                host_map = await get_all_hosts_map(config, headers)
+                if not host_map:
+                    raise HTTPException(status_code=500, detail="Could not fetch host list to filter by client")
+                
+                # 2. Filtriamo gli host che appartengono a questo cliente
+                hosts_in_cliente = [host_name for host_name, folder in host_map.items() if folder == cliente]
+                
+                if not hosts_in_cliente:
+                    logger.warning(f"[{request_id}] No hosts found for cliente: {cliente}")
+                    return {"downtimes": []}
+                
+                logger.info(f"[{request_id}] Found {len(hosts_in_cliente)} hosts for cliente. Fetching downtimes in parallel...")
+                
+                # 3. Creiamo task paralleli per ogni host
+                tasks = []
+                for host_name in hosts_in_cliente:
+                    
+                    # --- MODIFICA CHIAVE ---
+                    # NON filtriamo più per site_id! Lasciamo che il master cerchi ovunque.
+                    query_params = {"host_name": host_name}
+                    
+                    tasks.append(session.get(
+                        f"{api_url}/domain-types/downtime/collections/all",
+                        params=query_params
+                    ))
+                
+                # 4. Eseguiamo tutte le chiamate
+                start_time = time.time()
+                responses = await asyncio.gather(*tasks, return_exceptions=True)
+                response_time = time.time() - start_time
+                logger.info(f"[{request_id}] Parallel fetch completed in {response_time:.2f}s")
+
+                # 5. Raccogliamo i risultati
+                for resp in responses:
+                    if isinstance(resp, httpx.Response) and resp.status_code == 200:
+                        data = resp.json()
+                        all_downtimes.extend(data.get('value', []))
+                    elif isinstance(resp, Exception):
+                        # Log di errore migliorato
+                        logger.error(f"[{request_id}] Parallel task failed: {type(resp).__name__} - {str(resp)}")
+                
+            elif host:
+                # --- LOGICA PER HOST SINGOLO ---
+                logger.info(f"[{request_id}] Filtering by single host: {host}")
+                
+                # --- MODIFICA CHIAVE ---
+                # NON filtriamo più per site_id!
+                query_params = {"host_name": host}
+                
+                start_time = time.time()
+                resp = await session.get(
+                    f"{api_url}/domain-types/downtime/collections/all",
+                    params=query_params
+                )
+                response_time = time.time() - start_time
+                logger.info(f"[{request_id}] API response received in {response_time:.2f}s with status: {resp.status_code}")
+                
+                resp.raise_for_status()
+                data = resp.json()
+                all_downtimes = data.get('value', [])
+                
+            else:
+                logger.warning(f"[{request_id}] No filter (host or cliente) provided. Returning empty list.")
+                return {"downtimes": []}
+        
+        logger.info(f"[{request_id}] Successfully retrieved {len(all_downtimes)} total downtimes")
+        return {"downtimes": all_downtimes}
+        
+    except httpx.HTTPStatusError as e:
+        logger.error(f"[{request_id}] API error: {e.response.status_code} - {e.response.text}")
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error from Checkmk API: {e.response.status_code} - {e.response.text}"
+        )
     except Exception as e:
         error_msg = f"Failed to fetch downtimes: {str(e)}"
         logger.error(f"[{request_id}] {error_msg}")
@@ -397,6 +512,7 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
         
         logger.info(f"[{request_id}] Preparing {len(l_end)} downtime schedule requests to run in parallel...")
 
+        # Questa parte era già corretta
         async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
             for i in range(len(l_end)):
                 payload = {
@@ -409,6 +525,28 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
                     'host_name': host,
                 }
                 
+                # Assumendo che post_downtime sia definita da qualche parte o sia un errore di battitura
+                # Se 'post_downtime' non è una funzione definita, dovrai sostituirla con:
+                # tasks.append(session.post(
+                #     url=f"{api_url}/domain-types/downtime/collections/host",
+                #     json=payload
+                # ))
+                # Ma per ora lascio il tuo codice originale 'post_downtime'
+                
+                # --- INIZIO NOTA ---
+                # Il tuo codice originale chiama una funzione 'post_downtime' che non è definita in questo file.
+                # Sto presumendo che sia definita altrove (magari importata?) o che tu voglia 
+                # semplicemente fare la chiamata POST direttamente.
+                # Se 'post_downtime' NON è definita, sostituisci la riga 'tasks.append(...)' con:
+                
+                # tasks.append(session.post(
+                #    url=f"{api_url}/domain-types/downtime/collections/host",
+                #    json=payload
+                # ))
+                
+                # Per ora, lascio il codice come l'hai scritto tu, assumendo che 'post_downtime' esista
+                # e sia una funzione asincrona. Se non lo è, la riga qui sotto è un ERRORE.
+                
                 tasks.append(post_downtime(
                     session=session,
                     url=f"{api_url}/domain-types/downtime/collections/host",
@@ -417,20 +555,29 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
                     index=i,
                     total=len(l_end)
                 ))
-            
+                # --- FINE NOTA ---
+
             logger.info(f"[{request_id}] Sending {len(tasks)} requests...")
             start_exec_time = time.time()
             risposta = await asyncio.gather(*tasks)
             exec_time = time.time() - start_exec_time
             logger.info(f"[{request_id}] All requests completed in {exec_time:.2f} seconds")
 
-        success_count = risposta.count("Done")
+        # Questo codice presume che 'risposta' sia una lista di stringhe "Done"
+        # Se hai cambiato la logica in 'post_downtime' o l'hai sostituita con 'session.post',
+        # dovrai aggiustare questa parte
+        success_count = 0
+        if all(isinstance(r, str) for r in risposta):
+             success_count = risposta.count("Done")
+        elif all(isinstance(r, httpx.Response) for r in risposta):
+             success_count = sum(1 for r in risposta if r.status_code in [200, 201])
+        
         logger.info(f"[{request_id}] Schedule complete: {success_count}/{len(risposta)} requests succeeded")
         
         return {
             "start_times": l_start,
             "end_times": l_end,
-            "responses": risposta
+            "responses": [r.text if isinstance(r, httpx.Response) else r for r in risposta] # Mostra il testo della risposta
         }
     except Exception as e:
         error_msg = f"Failed to schedule downtime: {str(e)}"
@@ -440,3 +587,23 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg
         )
+
+# --- NOTA SULLA FUNZIONE MANCANTE ---
+# La funzione 'post_downtime' non è definita in questo file.
+# Devi definirla, probabilmente in questo modo:
+
+async def post_downtime(session: httpx.AsyncClient, url: str, payload: dict, request_id: str, index: int, total: int) -> str:
+    try:
+        logger.debug(f"[{request_id}] Sending request {index+1}/{total}: {payload.get('host_name')} from {payload.get('start_time')}")
+        resp = await session.post(url, json=payload)
+        resp.raise_for_status() # Lancia un errore se non è 2xx
+        logger.debug(f"[{request_id}] Request {index+1}/{total} successful")
+        return "Done"
+    except httpx.HTTPStatusError as e:
+        error_msg = f"Failed request {index+1}/{total}: {e.response.status_code} - {e.response.text}"
+        logger.error(f"[{request_id}] {error_msg}")
+        return error_msg
+    except Exception as e:
+        error_msg = f"Failed request {index+1}/{total}: {str(e)}"
+        logger.error(f"[{request_id}] {error_msg}")
+        return error_msg
