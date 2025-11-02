@@ -17,6 +17,9 @@ class HostWithFolder(BaseModel):
 class HostResponse(BaseModel):
     hosts: List[Union[str, HostWithFolder]]
 
+class ClientResponse(BaseModel):
+    clients: List[str]
+
 class StatsResponse(BaseModel):
     totalHosts: int
     activeDowntimes: int

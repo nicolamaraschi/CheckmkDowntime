@@ -9,7 +9,7 @@ import time
 import traceback
 from datetime import datetime, date, timedelta
 import calendar
-from .models import DowntimeRequest, HostResponse, StatsResponse, DowntimeResponse, ConnectionTestResponse
+from .models import DowntimeRequest, HostResponse, ClientResponse, StatsResponse, DowntimeResponse, ConnectionTestResponse
 from .dependencies import get_current_user
 
 logger = logging.getLogger("checkmk_api")
@@ -135,6 +135,56 @@ async def get_hosts(request: Request, token: str = Depends(get_current_user)):
             )
     except Exception as e:
         error_msg = f"Failed to fetch hosts: {str(e)}"
+        logger.error(f"[{request_id}] {error_msg}")
+        logger.error(f"[{request_id}] {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error_msg
+        )
+
+@router.get("/clients", response_model=ClientResponse)
+async def get_clients(request: Request, token: str = Depends(get_current_user)):
+    request_id = f"req-{int(time.time())}"
+    logger.info(f"[{request_id}] GET /clients - Request received")
+
+    config = get_checkmk_config()
+    api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
+
+    try:
+        logger.info(f"[{request_id}] Connecting to Checkmk API: {api_url}")
+
+        session = requests.session()
+        session.headers['Authorization'] = f"Bearer {config['user']} {config['password']}"
+        session.headers['Accept'] = 'application/json'
+
+        start_time = time.time()
+        resp = session.get(
+            f"{api_url}/domain-types/host_config/collections/all",
+            params={"effective_attributes": False},
+            timeout=30
+        )
+        response_time = time.time() - start_time
+
+        logger.info(f"[{request_id}] API response received in {response_time:.2f}s with status: {resp.status_code}")
+
+        if resp.status_code == 200:
+            data = resp.json()
+            folders = set()
+            for item in data['value']:
+                folder = item['extensions'].get('folder', '/')
+                folders.add(folder)
+
+            client_list = sorted(list(folders))
+            logger.info(f"[{request_id}] Successfully retrieved {len(client_list)} unique clients")
+            return {"clients": client_list}
+        else:
+            logger.error(f"[{request_id}] API error: {resp.status_code} - {resp.text}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error from Checkmk API: {resp.status_code} - {resp.text}"
+            )
+    except Exception as e:
+        error_msg = f"Failed to fetch clients: {str(e)}"
         logger.error(f"[{request_id}] {error_msg}")
         logger.error(f"[{request_id}] {traceback.format_exc()}")
         raise HTTPException(
