@@ -10,8 +10,12 @@ class DowntimeRequest(BaseModel):
     ripeti: Union[int, str]
     commento: str
 
+class HostWithFolder(BaseModel):
+    id: str
+    folder: str
+
 class HostResponse(BaseModel):
-    hosts: List[str]
+    hosts: List[Union[str, HostWithFolder]]
 
 class StatsResponse(BaseModel):
     totalHosts: int

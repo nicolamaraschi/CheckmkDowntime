@@ -119,8 +119,12 @@ async def get_hosts(request: Request, token: str = Depends(get_current_user)):
             host_list = []
             data = resp.json()
             for item in data['value']:
-                host_list.append(item['id'])
-            
+                host_obj = {
+                    'id': item['id'],
+                    'folder': item['extensions'].get('folder', '/')
+                }
+                host_list.append(host_obj)
+
             logger.info(f"[{request_id}] Successfully retrieved {len(host_list)} hosts")
             return {"hosts": host_list}
         else:
