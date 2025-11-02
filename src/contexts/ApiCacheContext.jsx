@@ -63,10 +63,12 @@ export const ApiCacheProvider = ({ children }) => {
       }
 
       const result = await response.json();
-      
+
       let processedData = result;
       if (cleanEndpoint === 'hosts' && result.hosts) {
         processedData = result.hosts;
+      } else if (cleanEndpoint === 'clients' && result.clients) {
+        processedData = result.clients;
       }
 
       setCache(prev => ({ ...prev, [cacheKey]: processedData }));
