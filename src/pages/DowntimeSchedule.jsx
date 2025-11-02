@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthProvider';
+import ClientSelector from '../components/ClientSelector';
 import HostSelector from '../components/HostSelector';
 import WeekdayPicker from '../components/WeekdayPicker';
 import TimePicker from '../components/TimePicker';
@@ -7,6 +8,7 @@ import '../styles/downtimeSchedule.css';
 import Loader from '../components/Loader';
 
 const DowntimeSchedule = () => {
+    const [selectedClient, setSelectedClient] = useState('');
     const [selectedHost, setSelectedHost] = useState('');
     const [weekdays, setWeekdays] = useState([]);
     const [startTime, setStartTime] = useState('00:00');
@@ -16,8 +18,13 @@ const DowntimeSchedule = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
-    
+
     const { token } = useAuth();
+
+    // Reset selected host when client changes
+    useEffect(() => {
+        setSelectedHost('');
+    }, [selectedClient]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -68,6 +75,7 @@ const DowntimeSchedule = () => {
                 setError(`Operazione completata con ${errorsInResponses.length} errori. Primo errore: ${firstError}`);
             } else {
                 setSuccess(`✓ Downtime programmato con successo per ${selectedHost}! (${result.responses.length} slot creati)`);
+                setSelectedClient('');
                 setSelectedHost('');
                 setWeekdays([]);
                 setRecurrence(0);
@@ -103,10 +111,22 @@ const DowntimeSchedule = () => {
             <h1>📅 Programma Downtime</h1>
             
             <form className="downtime-form" onSubmit={handleSubmit}>
-                
+
+                <div className="form-group">
+                    <label className="required-field">Cliente</label>
+                    <ClientSelector selectedClient={selectedClient} setSelectedClient={setSelectedClient} />
+                    {selectedClient && (
+                        <span className="info-badge">Cliente selezionato: {selectedClient}</span>
+                    )}
+                </div>
+
                 <div className="form-group">
                     <label className="required-field">Host</label>
-                    <HostSelector selectedHost={selectedHost} setSelectedHost={setSelectedHost} />
+                    <HostSelector
+                        selectedHost={selectedHost}
+                        setSelectedHost={setSelectedHost}
+                        selectedClient={selectedClient}
+                    />
                     {selectedHost && (
                         <span className="info-badge">Host selezionato: {selectedHost}</span>
                     )}
