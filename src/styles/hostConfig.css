@@ -1,54 +1,200 @@
-.host-config-container {
-  padding: 20px;
+/* --- Variabili Globali --- */
+:root {
+  /* Colori */
+  --color-primary: #007bff;
+  --color-secondary: #6c757d;
+  --color-text: #333;
+  --color-text-light: #666;
+  --color-background: #f8f9fa;
+  --color-card-background: #ffffff;
+  --color-border: #dee2e6;
+
+  --color-error: #dd0000;
+  --color-error-background: #ffeeee;
+  --color-info: #0066cc;
+  --color-info-background: #e7f3ff;
+
+  /* Spaziatura */
+  --spacing-small: 8px;
+  --spacing-medium: 16px;
+  --spacing-large: 24px;
+
+  /* Layout */
+  --border-radius: 8px;
+  --shadow-card: 0 2px 5px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 4px 10px rgba(0, 0, 0, 0.12);
+  --transition-fast: 0.2s ease;
+
+  /* Nuove variabili per dimensioni testo */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-small: 0.875rem; /* 14px */
+  --font-size-large: 1.125rem; /* 18px */
 }
 
-.loading-spinner {
-  margin: 40px 0;
-  text-align: center;
-  font-style: italic;
-  color: #666;
+/* --- Blocco Principale --- */
+.host-config {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-large);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--color-text);
 }
 
-.error-message {
-  margin: 20px 0;
-  padding: 15px;
-  background-color: #ffeeee;
-  border-left: 5px solid #dd0000;
-  border-radius: 4px;
+.host-config__title {
+  font-size: 2rem;
+  margin-top: 0;
+  margin-bottom: var(--spacing-large);
+  color: var(--color-text);
 }
 
-.host-count {
-  margin-bottom: 20px;
-  color: #666;
-  font-size: 0.9rem;
+/* --- Contenitori di Stato (Loading / Error) --- */
+.host-config__state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+  padding: var(--spacing-large);
+  border-radius: var(--border-radius);
+  background-color: var(--color-card-background);
 }
 
-.hosts-grid {
+/* --- Messaggi (Info / Error) --- */
+.host-config__message {
+  padding: var(--spacing-medium);
+  margin-bottom: var(--spacing-large);
+  border-radius: var(--border-radius);
+  border-left: 5px solid;
+  font-size: var(--font-size-base); /* Dimensione base per i messaggi */
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-small);
+}
+
+.host-config__message--info {
+  background-color: var(--color-info-background);
+  border-color: var(--color-info);
+  color: var(--color-info);
+}
+
+.host-config__message--error {
+  background-color: var(--color-error-background);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.host-config__message--error h3 {
+  margin-top: 0;
+}
+
+/* Selettore client all'interno del messaggio */
+.host-config__message--info > .host-config__icon {
+  font-size: var(--font-size-large); /* Rende l'icona 'ℹ️' più grande */
+}
+
+
+/* --- Sezione Filtri --- */
+.host-config__filters {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-medium);
+  margin-bottom: var(--spacing-large);
+  flex-wrap: wrap; /* Per responsività su schermi piccoli */
+}
+
+.host-config__filter-group {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Permette al selettore di crescere */
+  min-width: 200px; /* Evita che diventi troppo piccolo */
+}
+
+.host-config__label {
+  display: block;
+  margin-bottom: var(--spacing-small);
+  font-weight: bold;
+  font-size: var(--font-size-base); /* Reso più grande */
+}
+
+/* Stili per il ClientSelector (se è un <select> nativo o un componente con un input/select all'interno) */
+/* Questa è una supposizione, potresti doverla adattare al tuo ClientSelector */
+.host-config__filters select,
+.host-config__filters input[type="text"] { /* Assumendo che ClientSelector renderizzi un <select> o un input */
+  padding: var(--spacing-small);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base); /* Reso più grande */
+  min-height: 40px; /* Assicurati un'altezza minima per la cliccabilità */
+  width: 100%; /* Occupa lo spazio disponibile */
+}
+
+
+/* --- Elementi (Pulsanti, Conteggio) --- */
+.host-config__button {
+  padding: var(--spacing-small) var(--spacing-medium);
+  font-size: var(--font-size-base); /* Reso più grande */
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  line-height: 1.5; /* Allinea altezza con input */
+  min-height: 40px; /* Assicurati un'altezza minima per la cliccabilità */
+}
+
+.host-config__button--secondary {
+  background-color: var(--color-secondary);
+  border-color: var(--color-secondary);
+  color: white;
+}
+
+.host-config__button--secondary:hover {
+  background-color: #5a6268;
+  border-color: #5a6268;
+}
+
+.host-config__count {
+  margin-bottom: var(--spacing-medium);
+  color: var(--color-text-light);
+  font-size: var(--font-size-base); /* Reso più grande */
+}
+
+/* --- Griglia Host --- */
+.host-config__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
+  gap: var(--spacing-large);
 }
 
-.host-card {
-  background-color: white;
-  border-radius: 8px;
-  padding: 15px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.host-config__card {
+  background-color: var(--color-card-background);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-medium);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.host-card:hover {
+.host-config__card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-card-hover);
 }
 
-.host-card h3 {
+.host-config__card-title {
   margin-top: 0;
-  margin-bottom: 10px;
+  margin-bottom: var(--spacing-small);
+  font-size: var(--font-size-large); /* Titolo leggermente più grande */
+  color: var(--color-primary);
+  /* Gestisce ID lunghi senza rompere il layout */
+  word-break: break-all;
 }
 
-.host-card p {
-  margin: 5px 0;
-  color: #666;
-  font-size: 0.9rem;
+.host-config__card-meta {
+  margin: 0;
+  color: var(--color-text-light);
+  font-size: var(--font-size-base); /* Reso più grande */
+}
+
+/* Stili per il loader (se presente, da verificare la classe effettiva) */
+.loader-text {
+  font-size: var(--font-size-base);
 }

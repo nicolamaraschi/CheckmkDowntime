@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useApi } from '../hooks/useApi';
 import '../styles/existingDowntimes.css';
@@ -13,56 +13,120 @@ const ExistingDowntimes = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [fromCache, setFromCache] = useState(false);
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [autoRefresh, setAutoRefresh] = useState(false);
+    const [abortController, setAbortController] = useState(null);
     
     const { data: hostsData, loading: hostsLoading, error: hostsError } = useApi('hosts');
-    const { token } = useAuth();
+    const { token, refreshToken, logout } = useAuth();
     
     // Funzione per recuperare i downtime di un host specifico
-    const fetchHostDowntimes = async (hostname) => {
-        setIsLoading(true);
-        setError(null);
+const fetchHostDowntimes = useCallback(async (hostname) => {
+    if (!hostname || !token) return;
+    
+    // Annulla la richiesta precedente se esiste
+    if (abortController) {
+        abortController.abort();
+    }
+    
+    // Crea un nuovo controller per questa richiesta
+    const controller = new AbortController();
+    setAbortController(controller);
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+        // Usa il token di autenticazione dal contesto
+        const response = await fetch(`/api/downtimes?host=${encodeURIComponent(hostname)}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            signal: controller.signal
+        });
         
-        try {
-            // Usa il token di autenticazione dal contesto
-            const response = await fetch(`/api/downtimes?host=${encodeURIComponent(hostname)}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+        if (response.status === 401) {
+            // Prova a rinnovare il token
+            const newToken = await refreshToken();
+            
+            if (newToken) {
+                // Riprova la richiesta con il nuovo token
+                const retryResponse = await fetch(`/api/downtimes?host=${encodeURIComponent(hostname)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${newToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    signal: controller.signal
+                });
+                
+                if (!retryResponse.ok) {
+                    throw new Error(`Errore: ${retryResponse.status}`);
                 }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Errore: ${response.status}`);
+                
+                const data = await retryResponse.json();
+                setDowntimes(data.downtimes || []);
+                setFromCache(data.fromCache || false);
+            } else {
+                // Sessione scaduta, reindirizza al login
+                setError("La sessione è scaduta. Effettua nuovamente il login.");
+                setTimeout(() => {
+                    logout();
+                }, 3000);
             }
-            
+        } else if (!response.ok) {
+            throw new Error(`Errore: ${response.status}`);
+        } else {
             const data = await response.json();
             setDowntimes(data.downtimes || []);
             setFromCache(data.fromCache || false);
-            
-        } catch (err) {
-            console.error("Errore nel recupero dei downtime:", err);
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
         }
-    };
-    
-    // Recupera tutti i downtime o solo quelli dell'host selezionato
-    useEffect(() => {
-        if (hostsLoading) return;
         
-        if (selectedHost) {
-            // Se è selezionato un host specifico, carica i suoi downtime
-            fetchHostDowntimes(selectedHost);
-        } else if (selectedClient) {
-            // Se è selezionato solo un cliente, non possiamo filtrare direttamente
-            // nell'API, quindi mostreremo un messaggio informativo
-            setDowntimes([]);
-        } else {
-            // Se non è selezionato nulla, mostra che deve essere selezionato un host
-            setDowntimes([]);
+        setLastRefreshed(new Date());
+        
+    } catch (err) {
+        // Non mostrare errori se l'operazione è stata annullata intenzionalmente
+        if (err.name !== 'AbortError') {
+            console.error("Errore nel recupero dei downtime:", err);
+            setError(err.message || "Si è verificato un errore di rete");
         }
-    }, [selectedClient, selectedHost, hostsLoading, token]);
+    } finally {
+        setIsLoading(false);
+        setAbortController(null);
+    }
+}, [token, refreshToken, logout, abortController]);
+
+    // Pulisci le risorse quando il componente viene smontato
+    useEffect(() => {
+        return () => {
+            // Annulla qualsiasi richiesta in corso quando il componente viene smontato
+            if (abortController) {
+                abortController.abort();
+            }
+        };
+    }, [abortController]);
+    
+    // Reset quando cambia il cliente selezionato
+    useEffect(() => {
+        setSelectedHost('');
+    }, [selectedClient]);
+    
+    // Aggiornamento automatico se abilitato
+    useEffect(() => {
+        let refreshInterval;
+        
+        if (autoRefresh && selectedHost && !isLoading && lastRefreshed) {
+            refreshInterval = setInterval(() => {
+                fetchHostDowntimes(selectedHost);
+            }, 120000); // 2 minuti in millisecondi
+        }
+        
+        return () => {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        };
+    }, [autoRefresh, selectedHost, fetchHostDowntimes, isLoading, lastRefreshed]);
     
     // Crea mappa degli host
     const hostFolderMap = React.useMemo(() => {
@@ -95,35 +159,65 @@ const ExistingDowntimes = () => {
     
     // Reset dei filtri
     const handleReset = () => {
+        // Annulla eventuali richieste in corso
+        if (abortController) {
+            abortController.abort();
+            setAbortController(null);
+        }
+        
         setSelectedClient('');
         setSelectedHost('');
         setDowntimes([]);
+        setError(null);
+        setLastRefreshed(null);
     };
     
-    if (hostsLoading || isLoading) {
-        return (
-            <div className="downtime-container">
-                <h1>Downtime Esistenti</h1>
-                <Loader text="Caricamento..." />
-            </div>
-        );
-    }
+    // Gestione del bottone di ricerca
+    const handleSearch = () => {
+        if (selectedHost && !isLoading) {
+            fetchHostDowntimes(selectedHost);
+        }
+    };
     
-    if (hostsError || error) {
-        return (
-            <div className="downtime-container">
-                <h1>Downtime Esistenti</h1>
-                <div className="error-card">
-                    <h2>Errore</h2>
-                    <p>{hostsError || error}</p>
-                </div>
-            </div>
-        );
-    }
+    // Aggiornamento manuale
+    const handleRefresh = () => {
+        if (selectedHost && !isLoading && lastRefreshed) {
+            fetchHostDowntimes(selectedHost);
+        }
+    };
+    
+    // Gestione toggle autorefresh
+    const toggleAutoRefresh = () => {
+        setAutoRefresh(!autoRefresh);
+    };
     
     return (
         <div className="downtime-container">
             <h1>Downtime Esistenti</h1>
+            
+            {lastRefreshed && (
+                <div className="refresh-info">
+                    <div>
+                        <span>Ultimo aggiornamento: {lastRefreshed.toLocaleTimeString()}</span>
+                    </div>
+                    <div className="refresh-controls">
+                        <label>
+                            <input 
+                                type="checkbox" 
+                                checked={autoRefresh} 
+                                onChange={toggleAutoRefresh}
+                            /> Aggiornamento automatico
+                        </label>
+                        <button 
+                            className="refresh-button"
+                            onClick={handleRefresh}
+                            disabled={!selectedHost || isLoading || !lastRefreshed}
+                        >
+                            🔄 Aggiorna
+                        </button>
+                    </div>
+                </div>
+            )}
             
             {fromCache && (
                 <div className="cache-notification">
@@ -152,26 +246,71 @@ const ExistingDowntimes = () => {
                     
                     <div className="filter-actions">
                         <button 
+                            className="search-button"
+                            onClick={handleSearch}
+                            disabled={!selectedHost || isLoading}
+                        >
+                            🔍 Cerca
+                        </button>
+                        <button 
                             className="reset-button"
                             onClick={handleReset}
                         >
-                            Resetta Filtri
+                            Resetta
                         </button>
                     </div>
                 </div>
             </div>
             
-            {!selectedHost && (
-                <div className="filter-notice">
-                    <p>Seleziona un host specifico per visualizzare i suoi downtime.</p>
+            {isLoading && (
+                <div style={{ marginTop: "30px", marginBottom: "20px" }}>
+                    <Loader text="Caricamento downtime in corso..." />
                 </div>
             )}
             
-            {selectedHost && downtimes.length === 0 ? (
+            {error && (
+                <div className="error-card">
+                    <h2>Errore</h2>
+                    <p>{error}</p>
+                    {error.includes("sessione") ? (
+                        <button 
+                            className="retry-button"
+                            onClick={() => logout()}
+                            style={{ marginTop: '10px' }}
+                        >
+                            Vai al login
+                        </button>
+                    ) : (
+                        <button 
+                            className="retry-button"
+                            onClick={() => selectedHost && fetchHostDowntimes(selectedHost)}
+                            style={{ marginTop: '10px' }}
+                        >
+                            Riprova
+                        </button>
+                    )}
+                </div>
+            )}
+            
+            {!selectedHost && !isLoading && !error && (
+                <div className="filter-notice">
+                    <p>Seleziona un host specifico e clicca su "Cerca" per visualizzare i downtime.</p>
+                </div>
+            )}
+            
+            {selectedHost && !isLoading && !error && !lastRefreshed && (
+                <div className="filter-notice">
+                    <p>Host selezionato: {selectedHost}. Clicca su "Cerca" per visualizzare i downtime.</p>
+                </div>
+            )}
+            
+            {selectedHost && !isLoading && !error && lastRefreshed && downtimes.length === 0 && (
                 <div className="no-results">
                     <p>Nessun downtime trovato per l'host selezionato.</p>
                 </div>
-            ) : selectedHost && downtimes.length > 0 ? (
+            )}
+            
+            {!isLoading && !error && lastRefreshed && selectedHost && downtimes.length > 0 && (
                 <>
                     <div className="results-count">
                         Trovati {downtimes.length} downtime per {selectedHost}, di cui {activeDowntimes} attualmente attivi
@@ -212,7 +351,7 @@ const ExistingDowntimes = () => {
                         </tbody>
                     </table>
                 </>
-            ) : null}
+            )}
         </div>
     );
 };

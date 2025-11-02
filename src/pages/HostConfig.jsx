@@ -1,112 +1,98 @@
 import React, { useState, useMemo } from 'react';
 import { useApi } from '../hooks/useApi';
 import ClientSelector from '../components/ClientSelector';
-import '../styles/hostConfig.css';
+import '../styles/hostConfig.css'; // Il file CSS aggiornato
 import Loader from '../components/Loader';
 
 const HostConfig = () => {
   const [selectedClient, setSelectedClient] = useState('');
   const { data, loading, error, fromCache } = useApi('hosts');
-  
-  // Move useMemo hook before any conditional returns to follow React Hooks rules
+
   const hosts = useMemo(() => {
     let allHosts = [];
     if (data) {
       if (Array.isArray(data)) {
-        // Handle both old format (strings) and new format (objects with id and folder)
-        allHosts = data.map(item => {
-          if (typeof item === 'string') {
-            return { id: item, folder: '/' };
-          }
-          return item;
-        });
+        allHosts = data.map(item =>
+          typeof item === 'string' ? { id: item, folder: '/' } : item
+        );
       } else if (data.hosts && Array.isArray(data.hosts)) {
-        allHosts = data.hosts.map(item => {
-          if (typeof item === 'string') {
-            return { id: item, folder: '/' };
-          }
-          return item;
-        });
+        allHosts = data.hosts.map(item =>
+          typeof item === 'string' ? { id: item, folder: '/' } : item
+        );
       }
     }
 
-    // Filter by selected client if one is selected
     if (selectedClient && selectedClient !== '') {
       return allHosts.filter(host => host.folder === selectedClient);
     }
-
     return allHosts;
   }, [data, selectedClient]);
-  
+
   if (loading) {
     return (
-      <div className="host-config-container">
-        <h1>Configurazione Host</h1>
-        <Loader text="Caricamento host in corso..." />
+      <div className="host-config">
+        <h1 className="host-config__title">Configurazione Host</h1>
+        <div className="host-config__state-container">
+          <Loader text="Caricamento host in corso..." />
+        </div>
       </div>
     );
   }
-  
+
   if (error) {
     return (
-      <div className="host-config-container">
-        <h1>Configurazione Host</h1>
-        <div className="error-message">
-          <h3>Errore</h3>
-          <p>{error}</p>
+      <div className="host-config">
+        <h1 className="host-config__title">Configurazione Host</h1>
+        <div className="host-config__state-container">
+          <div className="host-config__message host-config__message--error">
+            <h3>Errore</h3>
+            <p>{error}</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="host-config-container">
-      <h1>Configurazione Host</h1>
+    <div className="host-config">
+      <h1 className="host-config__title">Configurazione Host</h1>
+
       {fromCache && (
-        <div style={{
-          padding: '10px',
-          backgroundColor: '#e7f3ff',
-          borderRadius: '4px',
-          marginBottom: '20px',
-          fontSize: '14px',
-          color: '#0066cc'
-        }}>
+        <div className="host-config__message host-config__message--info">
           ℹ️ Dati caricati dalla cache
         </div>
       )}
 
-      <div style={{ marginBottom: '20px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
-          Filtra per Cliente
-        </label>
-        <ClientSelector selectedClient={selectedClient} setSelectedClient={setSelectedClient} />
+      <div className="host-config__filters">
+        <div className="host-config__filter-group">
+          <label className="host-config__label" htmlFor="client-selector">
+            Filtra per Cliente
+          </label>
+          <ClientSelector
+            id="client-selector" // Assicurati che ClientSelector accetti un id
+            selectedClient={selectedClient}
+            setSelectedClient={setSelectedClient}
+          />
+        </div>
         {selectedClient && (
           <button
             onClick={() => setSelectedClient('')}
-            style={{
-              marginLeft: '10px',
-              padding: '8px 16px',
-              backgroundColor: '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
+            className="host-config__button host-config__button--secondary"
           >
             Mostra tutti
           </button>
         )}
       </div>
 
-      <div className="host-count">
+      <div className="host-config__count">
         {hosts.length} host {selectedClient ? `nel cliente ${selectedClient}` : 'disponibili'}
       </div>
 
-      <div className="hosts-grid">
+      <div className="host-config__grid">
         {hosts.map(host => (
-          <div key={host.id} className="host-card">
-            <h3>{host.id}</h3>
-            <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '8px' }}>
+          <div key={host.id} className="host-config__card">
+            <h3 className="host-config__card-title">{host.id}</h3>
+            <p className="host-config__card-meta">
               Cliente: {host.folder}
             </p>
           </div>
