@@ -8,27 +8,7 @@ const HostConfig = () => {
   const [selectedClient, setSelectedClient] = useState('');
   const { data, loading, error, fromCache } = useApi('hosts');
   
-  if (loading) {
-    return (
-      <div className="host-config-container">
-        <h1>Configurazione Host</h1>
-        <Loader text="Caricamento host in corso..." />
-      </div>
-    );
-  }
-  
-  if (error) {
-    return (
-      <div className="host-config-container">
-        <h1>Configurazione Host</h1>
-        <div className="error-message">
-          <h3>Errore</h3>
-          <p>{error}</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Move useMemo hook before any conditional returns to follow React Hooks rules
   const hosts = useMemo(() => {
     let allHosts = [];
     if (data) {
@@ -57,6 +37,27 @@ const HostConfig = () => {
 
     return allHosts;
   }, [data, selectedClient]);
+  
+  if (loading) {
+    return (
+      <div className="host-config-container">
+        <h1>Configurazione Host</h1>
+        <Loader text="Caricamento host in corso..." />
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="host-config-container">
+        <h1>Configurazione Host</h1>
+        <div className="error-message">
+          <h3>Errore</h3>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="host-config-container">

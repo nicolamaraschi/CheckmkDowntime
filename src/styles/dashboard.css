@@ -1,9 +1,32 @@
 .dashboard-container {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .dashboard-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 3px solid #007bff;
+}
+
+.cache-notification {
+  padding: 10px 15px;
+  background-color: #e7f5ff;
+  border-radius: 8px;
   margin-bottom: 20px;
+  font-size: 14px;
+  color: #0066cc;
+  display: flex;
+  align-items: center;
+}
+
+.cache-notification i {
+  margin-right: 8px;
+  font-size: 16px;
 }
 
 .stats-container {
@@ -50,18 +73,36 @@
 .welcome-card h2 {
   margin-top: 0;
   color: #333;
+  font-size: 1.5rem;
+  margin-bottom: 15px;
 }
 
 .welcome-card p {
   color: #666;
   line-height: 1.6;
+  margin-bottom: 15px;
 }
 
 .welcome-card ul {
   color: #666;
   line-height: 1.8;
+  padding-left: 20px;
 }
 
 .welcome-card li {
   margin-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+  .stats-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-value {
+    font-size: 2rem;
+  }
+  
+  .welcome-card {
+    padding: 20px;
+  }
 }
