@@ -471,3 +471,30 @@ tr.active-downtime:hover {
         flex: 1;
     }
 }
+
+.downtime-table .delete-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 5px;
+    color: #ff4d4d;
+    transition: color 0.2s ease;
+}
+
+.downtime-table .delete-button:hover {
+    color: #b30000;
+    transform: scale(1.1);
+}
+
+.downtime-table .delete-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    color: #999;
+}
+
+/* Aggiungi questo per centrare il bottone */
+.downtime-table td:last-child,
+.downtime-table th:last-child {
+    text-align: center;
+}

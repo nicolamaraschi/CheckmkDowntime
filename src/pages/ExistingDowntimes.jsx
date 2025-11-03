@@ -20,24 +20,20 @@ const ExistingDowntimes = () => {
     const { data: hostsData, loading: hostsLoading, error: hostsError } = useApi('hosts');
     const { token, refreshToken, logout } = useAuth();
     
-    // MODIFICA 1: Funzione di fetch aggiornata per gestire sia 'host' che 'cliente'
+    // Funzione per recuperare i downtime (per host o per cliente)
     const fetchDowntimes = useCallback(async (filter) => {
-        // filter sarà un oggetto tipo { client: 'nomecliente' } o { host: 'nomehost' }
         if (!filter || !token) return;
         
-        // Annulla la richiesta precedente se esiste
         if (abortController) {
             abortController.abort();
         }
         
-        // Crea un nuovo controller per questa richiesta
         const controller = new AbortController();
         setAbortController(controller);
         
         setIsLoading(true);
         setError(null);
         
-        // Costruisci la query string
         let queryString = '';
         if (filter.client) {
             queryString = `cliente=${encodeURIComponent(filter.client)}`;
@@ -45,11 +41,10 @@ const ExistingDowntimes = () => {
             queryString = `host=${encodeURIComponent(filter.host)}`;
         } else {
             setIsLoading(false);
-            return; // Nessun filtro valido
+            return;
         }
 
         try {
-            // Usa il token di autenticazione dal contesto
             const response = await fetch(`/api/downtimes?${queryString}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -59,11 +54,8 @@ const ExistingDowntimes = () => {
             });
             
             if (response.status === 401) {
-                // Prova a rinnovare il token
                 const newToken = await refreshToken();
-                
                 if (newToken) {
-                    // Riprova la richiesta con il nuovo token
                     const retryResponse = await fetch(`/api/downtimes?${queryString}`, {
                         headers: {
                             'Authorization': `Bearer ${newToken}`,
@@ -72,19 +64,13 @@ const ExistingDowntimes = () => {
                         signal: controller.signal
                     });
                     
-                    if (!retryResponse.ok) {
-                        throw new Error(`Errore: ${retryResponse.status}`);
-                    }
-                    
+                    if (!retryResponse.ok) throw new Error(`Errore: ${retryResponse.status}`);
                     const data = await retryResponse.json();
                     setDowntimes(data.downtimes || []);
                     setFromCache(data.fromCache || false);
                 } else {
-                    // Sessione scaduta, reindirizza al login
                     setError("La sessione è scaduta. Effettua nuovamente il login.");
-                    setTimeout(() => {
-                        logout();
-                    }, 3000);
+                    setTimeout(() => logout(), 3000);
                 }
             } else if (!response.ok) {
                 throw new Error(`Errore: ${response.status}`);
@@ -97,7 +83,6 @@ const ExistingDowntimes = () => {
             setLastRefreshed(new Date());
             
         } catch (err) {
-            // Non mostrare errori se l'operazione è stata annullata intenzionalmente
             if (err.name !== 'AbortError') {
                 console.error("Errore nel recupero dei downtime:", err);
                 setError(err.message || "Si è verificato un errore di rete");
@@ -106,38 +91,95 @@ const ExistingDowntimes = () => {
             setIsLoading(false);
             setAbortController(null);
         }
-    }, [token, refreshToken, logout, abortController]); // Fine fetchDowntimes
+    }, [token, refreshToken, logout, abortController]);
+
+    // --- NUOVA FUNZIONE PER ELIMINARE ---
+    const handleDeleteDowntime = async (downtimeId) => {
+        if (!downtimeId || !window.confirm(`Sei sicuro di voler eliminare il downtime ${downtimeId}?`)) {
+            return;
+        }
+    
+        if (!token) {
+            setError("Token non trovato. Esegui nuovamente il login.");
+            return;
+        }
+        
+        // Uso isLoading per bloccare altri bottoni
+        setIsLoading(true); 
+        setError(null);
+    
+        try {
+            const response = await fetch(`/api/downtimes/${downtimeId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+    
+            if (response.status === 401) {
+                const newToken = await refreshToken();
+                if (newToken) {
+                    // Riprova
+                    const retryResponse = await fetch(`/api/downtimes/${downtimeId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${newToken}`
+                        }
+                    });
+                    if (!retryResponse.ok) throw new Error(`Errore: ${retryResponse.status}`);
+                } else {
+                     setError("Sessione scaduta. Esegui nuovamente il login.");
+                     logout();
+                     return;
+                }
+            } else if (!response.ok && response.status !== 204) {
+                // Errore dal backend (204 No Content è un successo)
+                const errData = await response.json();
+                throw new Error(errData.detail || `Errore: ${response.status}`);
+            }
+            
+            // Successo (status 200, 202, o 204)
+            // Rimuovi il downtime dalla lista (aggiorna lo stato)
+            setDowntimes(prevDowntimes => 
+                prevDowntimes.filter(dt => dt.id !== downtimeId)
+            );
+            
+        } catch (err) {
+            console.error("Errore nell'eliminazione del downtime:", err);
+            setError(err.message || "Si è verificato un errore");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    // --- FINE NUOVA FUNZIONE ---
+
 
     // Pulisci le risorse quando il componente viene smontato
     useEffect(() => {
         return () => {
-            // Annulla qualsiasi richiesta in corso quando il componente viene smontato
             if (abortController) {
                 abortController.abort();
             }
         };
     }, [abortController]);
     
-    // Reset quando cambia il cliente selezionato (Questo è corretto e c'è già)
+    // Reset quando cambia il cliente selezionato
     useEffect(() => {
         setSelectedHost('');
     }, [selectedClient]);
     
-    // MODIFICA 2: Aggiornamento automatico se abilitato (ora funziona anche per cliente)
+    // Aggiornamento automatico se abilitato
     useEffect(() => {
         let refreshInterval;
-        
         if (autoRefresh && (selectedHost || selectedClient) && !isLoading && lastRefreshed) {
             refreshInterval = setInterval(() => {
-                // Esegui il refresh con il filtro correntemente attivo
                 if (selectedHost) {
                     fetchDowntimes({ host: selectedHost });
                 } else if (selectedClient) {
                     fetchDowntimes({ client: selectedClient });
                 }
-            }, 120000); // 2 minuti in millisecondi
+            }, 120000); // 2 minuti
         }
-        
         return () => {
             if (refreshInterval) {
                 clearInterval(refreshInterval);
@@ -162,26 +204,21 @@ const ExistingDowntimes = () => {
     // Calcola i downtime attivi
     const activeDowntimes = React.useMemo(() => {
         if (!downtimes.length) return 0;
-        
         const now = new Date();
         return downtimes.filter(dt => {
             const startTime = dt.extensions?.start_time ? new Date(dt.extensions.start_time) : null;
             const endTime = dt.extensions?.end_time ? new Date(dt.extensions.end_time) : null;
-            
             if (!startTime || !endTime) return false;
-            
             return startTime <= now && endTime >= now;
         }).length;
     }, [downtimes]);
     
     // Reset dei filtri
     const handleReset = () => {
-        // Annulla eventuali richieste in corso
         if (abortController) {
             abortController.abort();
             setAbortController(null);
         }
-        
         setSelectedClient('');
         setSelectedHost('');
         setDowntimes([]);
@@ -189,24 +226,19 @@ const ExistingDowntimes = () => {
         setLastRefreshed(null);
     };
     
-    // MODIFICA 3: Gestione del bottone di ricerca (logica host O cliente)
+    // Gestione del bottone di ricerca
     const handleSearch = () => {
         if (isLoading) return;
-
-        // Dai priorità all'host se è selezionato (più specifico)
         if (selectedHost) {
             fetchDowntimes({ host: selectedHost });
         } else if (selectedClient) {
-            // Altrimenti, cerca per cliente
             fetchDowntimes({ client: selectedClient });
         }
     };
     
-    // MODIFICA 4: Aggiornamento manuale (logica host O cliente)
+    // Aggiornamento manuale
     const handleRefresh = () => {
         if (isLoading || !lastRefreshed) return;
-
-        // Ricarica con lo stesso filtro di prima
         if (selectedHost) {
             fetchDowntimes({ host: selectedHost });
         } else if (selectedClient) {
@@ -239,7 +271,6 @@ const ExistingDowntimes = () => {
                         <button 
                             className="refresh-button"
                             onClick={handleRefresh}
-                            // MODIFICA 5: Abilita se c'è un filtro attivo
                             disabled={(!selectedHost && !selectedClient) || isLoading || !lastRefreshed}
                         >
                             🔄 Aggiorna
@@ -277,7 +308,6 @@ const ExistingDowntimes = () => {
                         <button 
                             className="search-button"
                             onClick={handleSearch}
-                            // MODIFICA 6: Abilita se c'è un filtro attivo
                             disabled={(!selectedClient && !selectedHost) || isLoading}
                         >
                             🔍 Cerca
@@ -313,7 +343,7 @@ const ExistingDowntimes = () => {
                     ) : (
                         <button 
                             className="retry-button"
-                            onClick={handleSearch} // Riprova l'ultima ricerca
+                            onClick={handleSearch}
                             style={{ marginTop: '10px' }}
                         >
                             Riprova
@@ -322,7 +352,6 @@ const ExistingDowntimes = () => {
                 </div>
             )}
             
-            {/* MODIFICA 7: Messaggi informativi aggiornati */}
             {!selectedClient && !selectedHost && !isLoading && !error && (
                 <div className="filter-notice">
                     <p>Seleziona un cliente o un host specifico e clicca su "Cerca" per visualizzare i downtime.</p>
@@ -347,7 +376,6 @@ const ExistingDowntimes = () => {
                 </div>
             )}
             
-            {/* MODIFICA 8: Conteggio risultati aggiornato */}
             {!isLoading && !error && lastRefreshed && (selectedClient || selectedHost) && downtimes.length > 0 && (
                 <>
                     <div className="results-count">
@@ -364,6 +392,7 @@ const ExistingDowntimes = () => {
                                 <th>Fine</th>
                                 <th>Autore</th>
                                 <th>Commento</th>
+                                <th>Azioni</th> {/* <-- NUOVA COLONNA */}
                             </tr>
                         </thead>
                         <tbody>
@@ -371,20 +400,34 @@ const ExistingDowntimes = () => {
                                 const hostName = dt.extensions?.host_name || 'N/A';
                                 const clientFolder = hostFolderMap.get(hostName) || '/';
                                 
-                                // Controlla se il downtime è attivo
                                 const now = new Date();
                                 const startTime = dt.extensions?.start_time ? new Date(dt.extensions.start_time) : null;
                                 const endTime = dt.extensions?.end_time ? new Date(dt.extensions.end_time) : null;
                                 const isActive = startTime && endTime && startTime <= now && endTime >= now;
                                 
+                                // USA dt.id COME CHIAVE PER LA RIGA
                                 return (
-                                    <tr key={idx} className={isActive ? 'active-downtime' : ''}>
+                                    <tr key={dt.id || idx} className={isActive ? 'active-downtime' : ''}>
                                         <td>{hostName}</td>
                                         <td>{clientFolder}</td>
                                         <td>{startTime ? startTime.toLocaleString() : 'N/A'}</td>
                                         <td>{endTime ? endTime.toLocaleString() : 'N/A'}</td>
                                         <td>{dt.extensions?.author || 'N/A'}</td>
                                         <td>{dt.extensions?.comment || 'N/A'}</td>
+                                        
+                                        {/* --- NUOVA CELLA CON PULSANTE ELIMINA --- */}
+                                        <td>
+                                            <button 
+                                                className="delete-button"
+                                                onClick={() => handleDeleteDowntime(dt.id)}
+                                                disabled={isLoading} // Disabilitato se un'altra azione è in corso
+                                                title={`Elimina downtime ${dt.id}`}
+                                            >
+                                                🗑️
+                                            </button>
+                                        </td>
+                                        {/* --- FINE --- */}
+                                        
                                     </tr>
                                 );
                             })}

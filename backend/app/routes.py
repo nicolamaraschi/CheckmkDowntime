@@ -607,3 +607,58 @@ async def post_downtime(session: httpx.AsyncClient, url: str, payload: dict, req
         error_msg = f"Failed request {index+1}/{total}: {str(e)}"
         logger.error(f"[{request_id}] {error_msg}")
         return error_msg
+
+
+# --- NUOVO ENDPOINT PER ELIMINARE ---
+@router.delete("/downtimes/{downtime_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_downtime(
+    request: Request, 
+    downtime_id: str,
+    token: str = Depends(get_current_user)
+):
+    request_id = f"req-{int(time.time())}"
+    logger.info(f"[{request_id}] DELETE /downtimes/{downtime_id} - Request received")
+    
+    config = get_checkmk_config()
+    # Usiamo l'API del sito master ('mkhrun') per la cancellazione
+    api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
+    
+    headers = {
+        'Authorization': f"Bearer {config['user']} {config['password']}",
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+    
+    # Questo è il payload che ci ha suggerito l'API
+    payload = {
+        "delete_type": "by_id",
+        "downtime_id": downtime_id
+    }
+    
+    try:
+        async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
+            logger.info(f"[{request_id}] Sending delete request to Checkmk API for ID: {downtime_id}")
+            resp = await session.post(
+                f"{api_url}/domain-types/downtime/actions/delete/invoke",
+                json=payload
+            )
+            
+            # Controlla se Checkmk ha dato un errore
+            resp.raise_for_status()
+            
+            logger.info(f"[{request_id}] Successfully deleted downtime {downtime_id}")
+            # Restituiamo una risposta vuota con 204 No Content
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
+            
+    except httpx.HTTPStatusError as e:
+        error_msg = f"API error deleting downtime: {e.response.status_code} - {e.response.text}"
+        logger.error(f"[{request_id}] {error_msg}")
+        raise HTTPException(status_code=e.response.status_code, detail=error_msg)
+    except Exception as e:
+        error_msg = f"Failed to delete downtime: {str(e)}"
+        logger.error(f"[{request_id}] {error_msg}")
+        logger.error(f"[{request_id}] {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error_msg
+        )
