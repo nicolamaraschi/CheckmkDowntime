@@ -32,3 +32,15 @@ class DowntimeResponse(BaseModel):
 class ConnectionTestResponse(BaseModel):
     status: str
     message: str
+
+class DowntimeDeleteRequest(BaseModel):
+    downtime_id: str
+    site_id: str
+
+class BatchDeleteRequest(BaseModel):
+    downtimes: List[DowntimeDeleteRequest]
+
+class BatchDeleteResponse(BaseModel):
+    succeeded: int
+    failed: int
+    errors: List[str]

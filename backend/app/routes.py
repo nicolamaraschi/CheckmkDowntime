@@ -10,7 +10,7 @@ import time
 import traceback
 from datetime import datetime, date, timedelta
 import calendar
-from .models import DowntimeRequest, HostResponse, ClientResponse, StatsResponse, DowntimeResponse, ConnectionTestResponse
+from .models import DowntimeRequest, HostResponse, ClientResponse, StatsResponse, DowntimeResponse, ConnectionTestResponse, BatchDeleteRequest, BatchDeleteResponse
 from .dependencies import get_current_user
 
 logger = logging.getLogger("checkmk_api")
@@ -650,3 +650,66 @@ async def delete_downtime(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg
         )
+
+
+@router.post("/downtimes/delete-batch", response_model=BatchDeleteResponse)
+async def delete_downtime_batch(
+    request: Request,
+    batch_request: BatchDeleteRequest,
+    token: str = Depends(get_current_user)
+):
+    request_id = f"req-{int(time.time())}"
+    downtimes_to_delete = batch_request.downtimes
+    if not downtimes_to_delete:
+        raise HTTPException(status_code=400, detail="No downtimes provided")
+        
+    logger.info(f"[{request_id}] POST /downtimes/delete-batch - Request to delete {len(downtimes_to_delete)} downtimes")
+    
+    config = get_checkmk_config()
+    # Usiamo l'API del sito master ('mkhrun') per la cancellazione
+    api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0/domain-types/downtime/actions/delete/invoke"
+    headers = {
+        'Authorization': f"Bearer {config['user']} {config['password']}",
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+    
+    tasks = []
+    # Usiamo un timeout lungo per le operazioni di batch
+    async with httpx.AsyncClient(headers=headers, timeout=300.0) as session:
+        for dt in downtimes_to_delete:
+            payload = {
+                "delete_type": "by_id",
+                "downtime_id": dt.downtime_id,
+                "site_id": dt.site_id
+            }
+            # Creiamo un task per ogni chiamata POST
+            tasks.append(session.post(api_url, json=payload))
+        
+        logger.info(f"[{request_id}] Sending {len(tasks)} delete requests in parallel...")
+        # Eseguiamo tutte le cancellazioni contemporaneamente
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    succeeded = 0
+    failed = 0
+    errors = []
+    
+    # Contiamo i risultati
+    for i, res in enumerate(results):
+        dt = downtimes_to_delete[i]
+        if isinstance(res, httpx.Response) and res.status_code == 204:
+            succeeded += 1
+        else:
+            failed += 1
+            error_msg = f"Failed dt {dt.downtime_id} on site {dt.site_id}: "
+            if isinstance(res, httpx.HTTPStatusError):
+                error_msg += f"{res.response.status_code} - {res.response.text}"
+            elif isinstance(res, Exception):
+                error_msg += f"{type(res).__name__} - {str(res)}"
+            else:
+                error_msg += f"Unknown error - Status {res.status_code}"
+            logger.error(f"[{request_id}] {error_msg}")
+            errors.append(error_msg)
+    
+    logger.info(f"[{request_id}] Batch delete complete. Succeeded: {succeeded}, Failed: {failed}")
+    return {"succeeded": succeeded, "failed": failed, "errors": errors}

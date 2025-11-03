@@ -498,3 +498,68 @@ tr.active-downtime:hover {
 .downtime-table th:last-child {
     text-align: center;
 }
+
+
+/* Contenitore per il conteggio e il pulsante batch */
+.batch-actions-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    flex-wrap: wrap; /* Va a capo su schermi piccoli */
+}
+
+/* Sposta il conteggio dei risultati qui */
+.results-count {
+    font-size: 0.95rem;
+    color: #555;
+    margin-bottom: 0; /* Rimuovi il margine di prima */
+}
+
+.batch-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.batch-actions span {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #007bff;
+}
+
+.delete-batch-button {
+    background-color: #ff4d4d; /* Rosso */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.delete-batch-button:hover {
+    background-color: #b30000;
+}
+
+.delete-batch-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* Stili per le celle delle checkbox */
+.downtime-table th.checkbox-cell,
+.downtime-table td.checkbox-cell {
+    width: 20px;
+    padding-left: 10px;
+    padding-right: 5px;
+    text-align: center;
+}
+
+.downtime-table input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
