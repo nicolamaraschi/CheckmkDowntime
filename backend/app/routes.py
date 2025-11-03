@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from starlette.responses import Response
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from typing import List, Dict, Any, Optional
 import requests  # Lo manteniamo se serve altrove, ma non per le chiamate API
 import httpx     # Importiamo httpx
@@ -426,14 +427,16 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
     
     try:
         host = req.host
-        giorni = req.giorni
-        start_time = req.startTime
-        end_time = req.endTime
+        giorni_feriali = req.giorni # Ora contiene solo giorni da 0 a 4
+        start_time_user = req.startTime # Orario dell'utente per i giorni feriali
+        end_time_user = req.endTime     # Orario dell'utente per i giorni feriali
         ripeti_val = req.ripeti
         commento = req.commento
         
         ripeti = 0
         if isinstance(ripeti_val, str):
+             # Questa logica 'weekend'/'domenica' non è più usata dal frontend,
+             # ma la lasciamo per sicurezza se il frontend non fosse aggiornato.
             if ripeti_val == "domenica":
                 ripeti = 30
                 logger.info(f"[{request_id}] 'domenica' recurrence translated to 30 days")
@@ -455,13 +458,33 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
         
         for i in range(ripeti + 1):
             day = today + timedelta(days=i)
+            current_weekday = day.weekday() # 0=Lunedì, 5=Sabato, 6=Domenica
             
-            if day.weekday() in giorni:
-                logger.debug(f"[{request_id}] Processing day {day} (weekday {day.weekday()})")
+            # Flag per sapere se dobbiamo aggiungere questo giorno
+            process_day = False
+            
+            # --- INIZIO LOGICA MODIFICATA ---
+            if current_weekday in giorni_feriali:
+                # È un giorno feriale selezionato dall'utente
+                logger.debug(f"[{request_id}] Applying user time for weekday: {day}")
+                start_dt = datetime.strptime(start_time_user, "%H:%M")
+                end_dt = datetime.strptime(end_time_user, "%H:%M")
+                process_day = True
                 
-                start_dt = datetime.strptime(start_time, "%H:%M")
-                end_dt = datetime.strptime(end_time, "%H:%M")
-                
+            elif current_weekday == 5 or current_weekday == 6:
+                # È Sabato o Domenica, lo aggiungiamo SEMPRE
+                logger.debug(f"[{request_id}] Applying all-day logic for weekend: {day}")
+                start_dt = datetime.strptime("00:00", "%H:%M")
+                end_dt = datetime.strptime("23:59", "%H:%M")
+                process_day = True
+            
+            else:
+                # È un giorno feriale NON selezionato, lo saltiamo
+                logger.debug(f"[{request_id}] Skipping weekday: {day}")
+                continue
+            # --- FINE LOGICA MODIFICATA ---
+
+            if process_day:
                 day_start = datetime(
                     day.year, day.month, day.day, 
                     start_dt.hour, start_dt.minute
@@ -512,7 +535,6 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
         
         logger.info(f"[{request_id}] Preparing {len(l_end)} downtime schedule requests to run in parallel...")
 
-        # Questa parte era già corretta
         async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
             for i in range(len(l_end)):
                 payload = {
@@ -525,28 +547,6 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
                     'host_name': host,
                 }
                 
-                # Assumendo che post_downtime sia definita da qualche parte o sia un errore di battitura
-                # Se 'post_downtime' non è una funzione definita, dovrai sostituirla con:
-                # tasks.append(session.post(
-                #     url=f"{api_url}/domain-types/downtime/collections/host",
-                #     json=payload
-                # ))
-                # Ma per ora lascio il tuo codice originale 'post_downtime'
-                
-                # --- INIZIO NOTA ---
-                # Il tuo codice originale chiama una funzione 'post_downtime' che non è definita in questo file.
-                # Sto presumendo che sia definita altrove (magari importata?) o che tu voglia 
-                # semplicemente fare la chiamata POST direttamente.
-                # Se 'post_downtime' NON è definita, sostituisci la riga 'tasks.append(...)' con:
-                
-                # tasks.append(session.post(
-                #    url=f"{api_url}/domain-types/downtime/collections/host",
-                #    json=payload
-                # ))
-                
-                # Per ora, lascio il codice come l'hai scritto tu, assumendo che 'post_downtime' esista
-                # e sia una funzione asincrona. Se non lo è, la riga qui sotto è un ERRORE.
-                
                 tasks.append(post_downtime(
                     session=session,
                     url=f"{api_url}/domain-types/downtime/collections/host",
@@ -555,29 +555,20 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
                     index=i,
                     total=len(l_end)
                 ))
-                # --- FINE NOTA ---
-
+            
             logger.info(f"[{request_id}] Sending {len(tasks)} requests...")
             start_exec_time = time.time()
             risposta = await asyncio.gather(*tasks)
             exec_time = time.time() - start_exec_time
             logger.info(f"[{request_id}] All requests completed in {exec_time:.2f} seconds")
 
-        # Questo codice presume che 'risposta' sia una lista di stringhe "Done"
-        # Se hai cambiato la logica in 'post_downtime' o l'hai sostituita con 'session.post',
-        # dovrai aggiustare questa parte
-        success_count = 0
-        if all(isinstance(r, str) for r in risposta):
-             success_count = risposta.count("Done")
-        elif all(isinstance(r, httpx.Response) for r in risposta):
-             success_count = sum(1 for r in risposta if r.status_code in [200, 201])
-        
+        success_count = risposta.count("Done")
         logger.info(f"[{request_id}] Schedule complete: {success_count}/{len(risposta)} requests succeeded")
         
         return {
             "start_times": l_start,
             "end_times": l_end,
-            "responses": [r.text if isinstance(r, httpx.Response) else r for r in risposta] # Mostra il testo della risposta
+            "responses": risposta
         }
     except Exception as e:
         error_msg = f"Failed to schedule downtime: {str(e)}"
@@ -588,10 +579,8 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
             detail=error_msg
         )
 
-# --- NOTA SULLA FUNZIONE MANCANTE ---
-# La funzione 'post_downtime' non è definita in questo file.
-# Devi definirla, probabilmente in questo modo:
 
+# Funzione helper per 'schedule_downtime' (necessaria)
 async def post_downtime(session: httpx.AsyncClient, url: str, payload: dict, request_id: str, index: int, total: int) -> str:
     try:
         logger.debug(f"[{request_id}] Sending request {index+1}/{total}: {payload.get('host_name')} from {payload.get('start_time')}")
@@ -607,25 +596,20 @@ async def post_downtime(session: httpx.AsyncClient, url: str, payload: dict, req
         error_msg = f"Failed request {index+1}/{total}: {str(e)}"
         logger.error(f"[{request_id}] {error_msg}")
         return error_msg
-
-
-# --- NUOVO ENDPOINT PER ELIMINARE ---
-# ... (tutto il codice precedente) ...
+    
 
 # --- NUOVO ENDPOINT PER ELIMINARE (MODIFICATO) ---
 @router.delete("/downtimes/{downtime_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_downtime(
     request: Request, 
     downtime_id: str,
-    site_id: str,  # <-- MODIFICA: Aggiunto site_id come query parameter
+    site_id: str,  # <-- 1. ACCETTA IL site_id COME QUERY PARAMETER
     token: str = Depends(get_current_user)
 ):
     request_id = f"req-{int(time.time())}"
-    # <-- MODIFICA: Aggiunto site_id al log
-    logger.info(f"[{request_id}] DELETE /downtimes/{downtime_id}?site_id={site_id} - Request received")
+    logger.info(f"[{request_id}] DELETE /downtimes/{downtime_id} on site {site_id} - Request received")
     
     config = get_checkmk_config()
-    # Usiamo l'API del sito master ('mkhrun') per la cancellazione
     api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
     
     headers = {
@@ -638,23 +622,21 @@ async def delete_downtime(
     payload = {
         "delete_type": "by_id",
         "downtime_id": downtime_id,
-        "site_id": site_id  # <-- MODIFICA: Aggiunto il campo mancante
+        "site_id": site_id  # <-- 2. INCLUDI IL site_id NEL PAYLOAD
     }
     
     try:
         async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
-            logger.info(f"[{request_id}] Sending delete request to Checkmk API for ID: {downtime_id} on site: {site_id}")
+            logger.info(f"[{request_id}] Sending delete request to Checkmk API: {payload}")
             resp = await session.post(
                 f"{api_url}/domain-types/downtime/actions/delete/invoke",
                 json=payload
             )
             
-            # Controlla se Checkmk ha dato un errore
             resp.raise_for_status()
             
-            logger.info(f"[{request_id}] Successfully deleted downtime {downtime_id}")
-            # Restituiamo una risposta vuota con 204 No Content
-            # NOTA: fastapi gestirà automaticamente la risposta 204
+            logger.info(f"[{request_id}] Successfully deleted downtime {downtime_id} from site {site_id}")
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
             
     except httpx.HTTPStatusError as e:
         error_msg = f"API error deleting downtime: {e.response.status_code} - {e.response.text}"
@@ -668,4 +650,3 @@ async def delete_downtime(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg
         )
-

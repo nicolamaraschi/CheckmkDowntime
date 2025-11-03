@@ -10,13 +10,12 @@ import Loader from '../components/Loader';
 const DowntimeSchedule = () => {
     const [selectedClient, setSelectedClient] = useState('');
     const [selectedHost, setSelectedHost] = useState('');
-    const [weekdays, setWeekdays] = useState([]);
+    const [weekdays, setWeekdays] = useState([]); // Ora conterrà solo 0-4
     const [startTime, setStartTime] = useState('00:00');
     const [endTime, setEndTime] = useState('01:00');
     
-    // --- LOGICA PER LA DURATA ---
-    const [durationValue, setDurationValue] = useState(1); // Es. "4"
-    const [durationUnit, setDurationUnit] = useState('weeks'); // 'days', 'weeks', 'months'
+    const [durationValue, setDurationValue] = useState(1);
+    const [durationUnit, setDurationUnit] = useState('weeks'); 
 
     const [commento, setCommento] = useState('');
     const [loading, setLoading] = useState(false);
@@ -38,17 +37,27 @@ const DowntimeSchedule = () => {
             setSuccess(null);
             return;
         }
+        
+        // --- MODIFICA ---
+        // Ora è possibile non selezionare giorni (0)
+        // se l'utente vuole impostare *solo* il weekend.
         if (weekdays.length === 0) {
-            setError("Per favore, seleziona almeno un giorno della settimana.");
-            setSuccess(null);
-            return;
+            // Non è un errore, ma avvisiamo l'utente
+            if (!window.confirm("Non hai selezionato giorni feriali. Verrà impostato il downtime SOLO per Sabato e Domenica. Continuare?")) {
+                return;
+            }
+        }
+
+        if (startTime === endTime) {
+             setError("L'ora di inizio e fine non possono coincidere.");
+             setSuccess(null);
+             return;
         }
 
         setLoading(true);
         setError(null);
         setSuccess(null);
 
-        // --- CALCOLO DEI GIORNI TOTALI DA PASSARE AL BACKEND V1 ---
         let totalDays = 0;
         switch (durationUnit) {
             case 'weeks':
@@ -57,23 +66,22 @@ const DowntimeSchedule = () => {
             case 'months':
                 totalDays = durationValue * 30; // Usiamo 30 giorni come approssimazione
                 break;
-            default: // 'days'
-                totalDays = durationValue;
+            default:
+                totalDays = durationValue * 7;
         }
-        // Il backend si aspetta "0" se è solo per oggi
+        
         const repeatDaysForBackend = totalDays > 0 ? totalDays - 1 : 0;
 
         const payload = {
             host: selectedHost,
-            giorni: weekdays,
+            giorni: weekdays, // Invia solo i giorni feriali (0-4)
             startTime: startTime,
             endTime: endTime,
-            ripeti: repeatDaysForBackend, // Invia il totale giorni calcolato
+            ripeti: repeatDaysForBackend, 
             commento: commento || "Manutenzione programmata"
         };
 
         try {
-            // Usiamo il VECCHIO endpoint /api/schedule che contiene la logica del loop
             const response = await fetch('/api/schedule', {
                 method: 'POST',
                 headers: {
@@ -89,7 +97,6 @@ const DowntimeSchedule = () => {
                 throw new Error(result.detail || `Errore server: ${response.status}`);
             }
 
-            // La risposta V1 è un array di messaggi
             const errorsInResponses = result.responses.filter(r => r !== 'Done');
             if (errorsInResponses.length > 0) {
                 const firstError = errorsInResponses[0];
@@ -129,11 +136,9 @@ const DowntimeSchedule = () => {
         );
     }
 
-    // Funzione helper per il testo dell'info badge
     const getDurationText = () => {
         if (durationValue <= 0) return "Solo per oggi";
         let unitText = '';
-        if (durationUnit === 'days') unitText = durationValue === 1 ? 'giorno' : 'giorni';
         if (durationUnit === 'weeks') unitText = durationValue === 1 ? 'settimana' : 'settimane';
         if (durationUnit === 'months') unitText = durationValue === 1 ? 'mese' : 'mesi';
         return `Si ripeterà per ${durationValue} ${unitText}`;
@@ -165,30 +170,46 @@ const DowntimeSchedule = () => {
                     )}
                 </div>
 
-                {/* --- BLOCCO 1: ORA INIZIO / FINE --- */}
                 <div className="time-group">
                     <div className="form-group">
                         <label className="required-field">Ora Inizio (HH:MM)</label>
-                        <TimePicker value={startTime} onChange={setStartTime} />
+                        <TimePicker 
+                            value={startTime} 
+                            onChange={setStartTime} 
+                        />
                     </div>
                     <div className="form-group">
                         <label className="required-field">Ora Fine (HH:MM)</label>
-                        <TimePicker value={endTime} onChange={setEndTime} />
+                        <TimePicker 
+                            value={endTime} 
+                            onChange={setEndTime} 
+                        />
                     </div>
                 </div>
 
-                {/* --- BLOCCO 2: GIORNI SETTIMANA --- */}
+
                 <div className="form-group">
-                    <label className="required-field">Giorni della settimana (Select Days)</label>
+                    {/* --- MODIFICA TESTO --- */}
+                    <label>Giorni feriali (Opzionale)</label>
                     <WeekdayPicker value={weekdays} onChange={setWeekdays} />
-                    {weekdays.length > 0 && (
-                        <span className="info-badge">{weekdays.length} giorn{weekdays.length === 1 ? 'o' : 'i'} selezionat{weekdays.length === 1 ? 'o' : 'i'}</span>
-                    )}
+                    
+                    {/* --- NOTA INFORMATIVA AGGIORNATA --- */}
+                    <span className="info-badge" style={{
+                        marginTop: '10px', 
+                        backgroundColor: '#e6f7ff', 
+                        color: '#0056b3', 
+                        textAlign: 'left',
+                        display: 'block',
+                        padding: '10px'
+                    }}>
+                        ℹ️ **Nota:** Il downtime per **Sabato e Domenica** (00:00 - 23:59) viene aggiunto **automaticamente** per tutta la durata selezionata.
+                        <br/>
+                        Seleziona i giorni qui sopra solo se vuoi aggiungere un downtime anche nei giorni feriali (es. Lun-Ven).
+                    </span>
                 </div>
 
-                {/* --- BLOCCO 3: DURATA --- */}
                 <div className="form-group">
-                    <label className="required-field">Ripeti per (Durata)</label>
+                    <label className="required-field">Durata</label>
                     <div className="duration-group">
                         <input 
                             type="number" 
@@ -203,7 +224,6 @@ const DowntimeSchedule = () => {
                             onChange={(e) => setDurationUnit(e.target.value)}
                             className="duration-unit"
                         >
-                            <option value="days">Giorni</option>
                             <option value="weeks">Settimane</option>
                             <option value="months">Mesi</option>
                         </select>
@@ -212,7 +232,6 @@ const DowntimeSchedule = () => {
                         {getDurationText()}
                     </span>
                 </div>
-                {/* --- FINE BLOCCHI RIORDINATI --- */}
 
                 <div className="form-group">
                     <label>Commento</label>
@@ -220,14 +239,14 @@ const DowntimeSchedule = () => {
                         type="text" 
                         value={commento} 
                         onChange={(e) => setCommento(e.target.value)}
-                        placeholder="Es. Manutenzione programmata"
+                        placeholder="Es. Spegnimento weekend"
                         maxLength={200}
                     />
                 </div>
 
                 <div className="form-actions">
-                    <button type="submit" className="submit-btn">
-                        🚀 Programma Downtime
+                    <button type="submit" className="submit-btn" disabled={loading}>
+                        {loading ? 'Programmazione...' : '🚀 Programma Downtime'}
                     </button>
                 </div>
 

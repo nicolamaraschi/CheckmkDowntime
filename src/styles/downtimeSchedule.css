@@ -1,338 +1,182 @@
+/* Stili per il contenitore principale del form */
 .downtime-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 30px 20px;
+  padding: 20px;
+  max-width: 800px;
+  margin: 20px auto;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .downtime-container h1 {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 30px;
+  text-align: center;
+  color: #333;
+  margin-bottom: 25px;
+  border-bottom: 2px solid #f0f0f0;
   padding-bottom: 15px;
-  border-bottom: 3px solid #007bff;
 }
 
+/* Stili per il form */
 .downtime-form {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  padding: 40px;
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
+/* Stili per i gruppi di form */
 .form-group {
-  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .form-group label {
-  display: block;
-  font-size: 1rem;
   font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 12px;
-  letter-spacing: 0.3px;
+  color: #555;
+  font-size: 0.9rem;
 }
 
-.form-group select,
+.form-group .required-field::after {
+  content: ' *';
+  color: #e63946;
+  font-weight: bold;
+}
+
+/* * --- ECCO LA MODIFICA ---
+* Stili per tutti gli input (testo, numero, ora) e select 
+*/
+.form-group input[type="text"],
 .form-group input[type="number"],
-.form-group input[type="text"] {
-  width: 100%;
-  padding: 14px 18px;
+.form-group input[type="time"],  /* <-- AGGIUNTO! */
+.form-group select {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
   font-size: 1rem;
-  border: 2px solid #dee2e6;
-  border-radius: 10px;
-  background-color: #ffffff;
-  transition: all 0.3s ease;
-  font-family: inherit;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Aspetto pulito */
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background-color: #fff; /* Sfondo bianco */
 }
 
-.form-group select:focus,
-.form-group input[type="number"]:focus,
-.form-group input[type="text"]:focus {
-  outline: none;
+.form-group input:focus,
+.form-group select:focus {
   border-color: #007bff;
-  box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1);
-  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+  outline: none;
 }
 
-.form-group select:disabled,
-.form-group input:disabled {
-  background-color: #f1f3f5;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
+/* Stili per i bottoni dei giorni della settimana (WeekdayPicker) */
 .weekday-picker {
-  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.weekday-buttons {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.weekday-buttons button {
-  padding: 16px 8px;
-  font-size: 0.95rem;
+.day-button {
+  flex: 1;
+  padding: 12px 0;
+  font-size: 1rem;
   font-weight: 600;
-  border: 2px solid #dee2e6;
-  border-radius: 12px;
-  background-color: #ffffff;
-  color: #6c757d;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+  color: #555;
   cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
 
-.weekday-buttons button:hover {
+.day-button:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.day-button.selected {
+  background-color: #007bff;
   border-color: #007bff;
-  background-color: #e7f3ff;
-  color: #007bff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
-}
-
-.weekday-buttons button.selected {
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
   color: #ffffff;
-  border-color: #0056b3;
-  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
 }
 
-.weekday-buttons button.selected:hover {
-  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
-  transform: translateY(-2px);
-}
 
+/* Stili per il gruppo ora (TimePicker) */
 .time-group {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
-.time-picker {
   display: flex;
-  flex-direction: column;
+  gap: 20px;
 }
 
-.time-picker label {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 12px;
+.time-group .form-group {
+  flex: 1;
 }
 
-.time-picker input[type="time"] {
-  padding: 14px 18px;
-  font-size: 1.1rem;
-  border: 2px solid #dee2e6;
-  border-radius: 10px;
-  background-color: #ffffff;
-  transition: all 0.3s ease;
-  font-family: inherit;
-}
-
-.time-picker input[type="time"]:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1);
-}
-
-.form-actions {
-  margin-top: 40px;
-  display: flex;
-  justify-content: center;
-  padding-top: 30px;
-  border-top: 2px solid #e9ecef;
-}
-
-.submit-btn {
-  padding: 16px 48px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #ffffff;
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.submit-btn:hover {
-  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
-}
-
-.submit-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
-}
-
-.submit-btn:disabled {
-  background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
-  cursor: not-allowed;
-  opacity: 0.6;
-  transform: none;
-  box-shadow: none;
-}
-
-.form-message {
-  margin-top: 24px;
-  padding: 16px 20px;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 500;
-  animation: slideDown 0.3s ease;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.success-message {
-  background-color: #d4edda;
-  color: #155724;
-  border: 2px solid #c3e6cb;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.success-message::before {
-  content: "✓";
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background-color: #28a745;
-  color: white;
-  border-radius: 50%;
-  font-weight: bold;
-  font-size: 1.2rem;
-}
-
-.error-message {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 2px solid #f5c6cb;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.error-message::before {
-  content: "✕";
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background-color: #dc3545;
-  color: white;
-  border-radius: 50%;
-  font-weight: bold;
-  font-size: 1.2rem;
-}
-
-.info-badge {
-  display: inline-block;
-  padding: 6px 14px;
-  background-color: #e7f3ff;
-  color: #0066cc;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  margin-top: 8px;
-}
-
-.required-field::after {
-  content: " *";
-  color: #dc3545;
-  font-weight: bold;
-}
-
-@media (max-width: 768px) {
-  .downtime-form {
-    padding: 24px 20px;
-  }
-
-  .downtime-container h1 {
-    font-size: 1.6rem;
-  }
-
-  .time-group {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .weekday-buttons {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-  }
-
-  .weekday-buttons button {
-    padding: 14px 6px;
-    font-size: 0.85rem;
-  }
-
-  .submit-btn {
-    width: 100%;
-    padding: 14px 32px;
-    font-size: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .downtime-container {
-    padding: 20px 15px;
-  }
-
-  .downtime-form {
-    padding: 20px 16px;
-  }
-
-  .weekday-buttons {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .form-group {
-    margin-bottom: 24px;
-  }
-}
-
-
-/* Aggiungi in src/styles/downtimeSchedule.css */
-
+/* Stili per il gruppo durata */
 .duration-group {
   display: flex;
   gap: 10px;
 }
 
-.duration-group .duration-value {
-  flex: 1; /* Occupa 1 parte di spazio */
+.duration-value {
+  flex: 1;
+  width: 100px; /* Larghezza fissa per il numero */
 }
 
-.duration-group .duration-unit {
-  flex: 2; /* Occupa 2 parti di spazio, rendendolo più largo */
-  padding: 10px; /* Assicura che l'altezza sia uguale all'input */
-  border: 1px solid #ced4da;
-  border-radius: 5px;
-  background-color: #fff;
-  font-size: 1rem;
+.duration-unit {
+  flex: 2;
+}
+
+/* Badge informativi */
+.info-badge {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-top: 5px;
+  background-color: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+/* Pulsante di submit e messaggi */
+.form-actions {
+  margin-top: 15px;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background-color: #28a745; /* Verde */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submit-btn:hover {
+  background-color: #218838;
+}
+
+.submit-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Messaggi di successo ed errore */
+.form-message {
+  padding: 12px 15px;
+  border-radius: 6px;
+  margin-top: 10px;
+  font-weight: 500;
+}
+
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
 }

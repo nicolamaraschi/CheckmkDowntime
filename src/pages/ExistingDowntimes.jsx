@@ -22,6 +22,7 @@ const ExistingDowntimes = () => {
     
     // Funzione per recuperare i downtime (per host o per cliente)
     const fetchDowntimes = useCallback(async (filter) => {
+        // ... (nessuna modifica qui, questa funzione è corretta) ...
         if (!filter || !token) return;
         
         if (abortController) {
@@ -93,15 +94,15 @@ const ExistingDowntimes = () => {
         }
     }, [token, refreshToken, logout, abortController]);
 
-    // --- FUNZIONE PER ELIMINARE (MODIFICATA) ---
-    const handleDeleteDowntime = async (downtimeId, siteId) => { // <-- MODIFICA: Aggiunto siteId
-        
-        // <-- MODIFICA: Aggiunto controllo su siteId
-        if (!downtimeId || !siteId || !window.confirm(`Sei sicuro di voler eliminare il downtime ${downtimeId} dal sito ${siteId}?`)) {
-            if (!siteId) {
-                console.error("Tentativo di eliminazione fallito: site_id mancante.", downtimeId);
-                setError("Errore: Impossibile trovare il 'site_id' per questo downtime. Dati corrotti.");
-            }
+    // --- MODIFICA 1: Aggiorna la funzione di cancellazione ---
+    const handleDeleteDowntime = async (downtimeId, siteId) => {
+        // Aggiungi un controllo per il siteId
+        if (!downtimeId || !siteId) {
+            setError("ID o Site ID mancante. Impossibile eliminare.");
+            return;
+        }
+
+        if (!window.confirm(`Sei sicuro di voler eliminare il downtime ${downtimeId} dal sito ${siteId}?`)) {
             return;
         }
     
@@ -112,12 +113,10 @@ const ExistingDowntimes = () => {
         
         setIsLoading(true); 
         setError(null);
-        
-        // <-- MODIFICA: Aggiunto site_id come query parameter
-        const apiUrl = `/api/downtimes/${downtimeId}?site_id=${encodeURIComponent(siteId)}`;
     
         try {
-            const response = await fetch(apiUrl, { // <-- MODIFICA: usata variabile apiUrl
+            // --- MODIFICA 2: Aggiungi site_id come query parameter ---
+            const response = await fetch(`/api/downtimes/${downtimeId}?site_id=${encodeURIComponent(siteId)}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -127,8 +126,8 @@ const ExistingDowntimes = () => {
             if (response.status === 401) {
                 const newToken = await refreshToken();
                 if (newToken) {
-                    // Riprova
-                    const retryResponse = await fetch(apiUrl, { // <-- MODIFICA: usata variabile apiUrl
+                    // Riprova con il nuovo token
+                    const retryResponse = await fetch(`/api/downtimes/${downtimeId}?site_id=${encodeURIComponent(siteId)}`, {
                         method: 'DELETE',
                         headers: {
                             'Authorization': `Bearer ${newToken}`
@@ -141,12 +140,11 @@ const ExistingDowntimes = () => {
                      return;
                 }
             } else if (!response.ok && response.status !== 204) {
-                // Errore dal backend (204 No Content è un successo)
                 const errData = await response.json();
                 throw new Error(errData.detail || `Errore: ${response.status}`);
             }
             
-            // Successo (status 200, 202, o 204)
+            // Successo
             setDowntimes(prevDowntimes => 
                 prevDowntimes.filter(dt => dt.id !== downtimeId)
             );
@@ -158,9 +156,10 @@ const ExistingDowntimes = () => {
             setIsLoading(false);
         }
     };
-    // --- FINE FUNZIONE MODIFICATA ---
+    // --- FINE MODIFICHE FUNZIONE ---
 
 
+    // ... (tutti gli useEffect, useMemo, handleReset, handleSearch, handleRefresh, etc. restano uguali) ...
     // Pulisci le risorse quando il componente viene smontato
     useEffect(() => {
         return () => {
@@ -260,6 +259,7 @@ const ExistingDowntimes = () => {
     
     return (
         <div className="downtime-container">
+            {/* ... (tutto il JSX per filtri, loader, errori, etc. resta uguale) ... */}
             <h1>Downtime Esistenti</h1>
             
             {lastRefreshed && (
@@ -382,6 +382,7 @@ const ExistingDowntimes = () => {
                     <p>Nessun downtime trovato per i filtri selezionati.</p>
                 </div>
             )}
+
             
             {!isLoading && !error && lastRefreshed && (selectedClient || selectedHost) && downtimes.length > 0 && (
                 <>
@@ -395,7 +396,7 @@ const ExistingDowntimes = () => {
                             <tr>
                                 <th>Host</th>
                                 <th>Cliente</th>
-                                <th>Sito</th> {/* <-- Aggiunta colonna Sito */}
+                                <th>Sito</th> {/* <-- COLONNA OPZIONALE, MA UTILE */}
                                 <th>Inizio</th>
                                 <th>Fine</th>
                                 <th>Autore</th>
@@ -406,8 +407,8 @@ const ExistingDowntimes = () => {
                         <tbody>
                             {downtimes.map((dt, idx) => {
                                 const hostName = dt.extensions?.host_name || 'N/A';
+                                const siteId = dt.extensions?.site_id || 'N/A'; // Prendiamo il siteId
                                 const clientFolder = hostFolderMap.get(hostName) || '/';
-                                const siteId = dt.extensions?.site || 'N/A'; // <-- Leggiamo il site_id
                                 
                                 const now = new Date();
                                 const startTime = dt.extensions?.start_time ? new Date(dt.extensions.start_time) : null;
@@ -418,26 +419,23 @@ const ExistingDowntimes = () => {
                                     <tr key={dt.id || idx} className={isActive ? 'active-downtime' : ''}>
                                         <td>{hostName}</td>
                                         <td>{clientFolder}</td>
-                                        <td>{siteId}</td> {/* <-- Mostriamo il site_id */}
+                                        <td>{siteId}</td> {/* <-- MOSTRA IL siteId */}
                                         <td>{startTime ? startTime.toLocaleString() : 'N/A'}</td>
                                         <td>{endTime ? endTime.toLocaleString() : 'N/A'}</td>
                                         <td>{dt.extensions?.author || 'N/A'}</td>
                                         <td>{dt.extensions?.comment || 'N/A'}</td>
                                         
                                         <td>
+                                            {/* --- MODIFICA 3: Passa anche dt.extensions.site_id --- */}
                                             <button 
                                                 className="delete-button"
-                                                // --- MODIFICA CHIAVE ---
-                                                // Passiamo sia l'ID che il siteId
-                                                onClick={() => handleDeleteDowntime(dt.id, siteId)}
-                                                // --- FINE MODIFICA ---
+                                                onClick={() => handleDeleteDowntime(dt.id, dt.extensions.site_id)}
                                                 disabled={isLoading}
-                                                title={`Elimina downtime ${dt.id}`}
+                                                title={`Elimina downtime ${dt.id} dal sito ${siteId}`}
                                             >
                                                 🗑️
                                             </button>
                                         </td>
-                                        
                                     </tr>
                                 );
                             })}
