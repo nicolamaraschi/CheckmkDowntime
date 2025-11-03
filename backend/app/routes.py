@@ -610,14 +610,19 @@ async def post_downtime(session: httpx.AsyncClient, url: str, payload: dict, req
 
 
 # --- NUOVO ENDPOINT PER ELIMINARE ---
+# ... (tutto il codice precedente) ...
+
+# --- NUOVO ENDPOINT PER ELIMINARE (MODIFICATO) ---
 @router.delete("/downtimes/{downtime_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_downtime(
     request: Request, 
     downtime_id: str,
+    site_id: str,  # <-- MODIFICA: Aggiunto site_id come query parameter
     token: str = Depends(get_current_user)
 ):
     request_id = f"req-{int(time.time())}"
-    logger.info(f"[{request_id}] DELETE /downtimes/{downtime_id} - Request received")
+    # <-- MODIFICA: Aggiunto site_id al log
+    logger.info(f"[{request_id}] DELETE /downtimes/{downtime_id}?site_id={site_id} - Request received")
     
     config = get_checkmk_config()
     # Usiamo l'API del sito master ('mkhrun') per la cancellazione
@@ -632,12 +637,13 @@ async def delete_downtime(
     # Questo è il payload che ci ha suggerito l'API
     payload = {
         "delete_type": "by_id",
-        "downtime_id": downtime_id
+        "downtime_id": downtime_id,
+        "site_id": site_id  # <-- MODIFICA: Aggiunto il campo mancante
     }
     
     try:
         async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
-            logger.info(f"[{request_id}] Sending delete request to Checkmk API for ID: {downtime_id}")
+            logger.info(f"[{request_id}] Sending delete request to Checkmk API for ID: {downtime_id} on site: {site_id}")
             resp = await session.post(
                 f"{api_url}/domain-types/downtime/actions/delete/invoke",
                 json=payload
@@ -648,7 +654,7 @@ async def delete_downtime(
             
             logger.info(f"[{request_id}] Successfully deleted downtime {downtime_id}")
             # Restituiamo una risposta vuota con 204 No Content
-            return Response(status_code=status.HTTP_204_NO_CONTENT)
+            # NOTA: fastapi gestirà automaticamente la risposta 204
             
     except httpx.HTTPStatusError as e:
         error_msg = f"API error deleting downtime: {e.response.status_code} - {e.response.text}"
@@ -662,3 +668,4 @@ async def delete_downtime(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg
         )
+

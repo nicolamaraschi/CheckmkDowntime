@@ -13,7 +13,11 @@ const DowntimeSchedule = () => {
     const [weekdays, setWeekdays] = useState([]);
     const [startTime, setStartTime] = useState('00:00');
     const [endTime, setEndTime] = useState('01:00');
-    const [recurrence, setRecurrence] = useState(0);
+    
+    // --- LOGICA PER LA DURATA ---
+    const [durationValue, setDurationValue] = useState(1); // Es. "4"
+    const [durationUnit, setDurationUnit] = useState('weeks'); // 'days', 'weeks', 'months'
+
     const [commento, setCommento] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -35,7 +39,7 @@ const DowntimeSchedule = () => {
             return;
         }
         if (weekdays.length === 0) {
-            setError("Per favore, seleziona almeno un giorno.");
+            setError("Per favore, seleziona almeno un giorno della settimana.");
             setSuccess(null);
             return;
         }
@@ -44,16 +48,32 @@ const DowntimeSchedule = () => {
         setError(null);
         setSuccess(null);
 
+        // --- CALCOLO DEI GIORNI TOTALI DA PASSARE AL BACKEND V1 ---
+        let totalDays = 0;
+        switch (durationUnit) {
+            case 'weeks':
+                totalDays = durationValue * 7;
+                break;
+            case 'months':
+                totalDays = durationValue * 30; // Usiamo 30 giorni come approssimazione
+                break;
+            default: // 'days'
+                totalDays = durationValue;
+        }
+        // Il backend si aspetta "0" se è solo per oggi
+        const repeatDaysForBackend = totalDays > 0 ? totalDays - 1 : 0;
+
         const payload = {
             host: selectedHost,
             giorni: weekdays,
             startTime: startTime,
             endTime: endTime,
-            ripeti: recurrence,
+            ripeti: repeatDaysForBackend, // Invia il totale giorni calcolato
             commento: commento || "Manutenzione programmata"
         };
 
         try {
+            // Usiamo il VECCHIO endpoint /api/schedule che contiene la logica del loop
             const response = await fetch('/api/schedule', {
                 method: 'POST',
                 headers: {
@@ -69,16 +89,19 @@ const DowntimeSchedule = () => {
                 throw new Error(result.detail || `Errore server: ${response.status}`);
             }
 
+            // La risposta V1 è un array di messaggi
             const errorsInResponses = result.responses.filter(r => r !== 'Done');
             if (errorsInResponses.length > 0) {
                 const firstError = errorsInResponses[0];
                 setError(`Operazione completata con ${errorsInResponses.length} errori. Primo errore: ${firstError}`);
             } else {
                 setSuccess(`✓ Downtime programmato con successo per ${selectedHost}! (${result.responses.length} slot creati)`);
+                // Reset del form
                 setSelectedClient('');
                 setSelectedHost('');
                 setWeekdays([]);
-                setRecurrence(0);
+                setDurationValue(1);
+                setDurationUnit('weeks');
                 setCommento('');
             }
 
@@ -106,6 +129,16 @@ const DowntimeSchedule = () => {
         );
     }
 
+    // Funzione helper per il testo dell'info badge
+    const getDurationText = () => {
+        if (durationValue <= 0) return "Solo per oggi";
+        let unitText = '';
+        if (durationUnit === 'days') unitText = durationValue === 1 ? 'giorno' : 'giorni';
+        if (durationUnit === 'weeks') unitText = durationValue === 1 ? 'settimana' : 'settimane';
+        if (durationUnit === 'months') unitText = durationValue === 1 ? 'mese' : 'mesi';
+        return `Si ripeterà per ${durationValue} ${unitText}`;
+    };
+
     return (
         <div className="downtime-container">
             <h1>📅 Programma Downtime</h1>
@@ -132,14 +165,7 @@ const DowntimeSchedule = () => {
                     )}
                 </div>
 
-                <div className="form-group">
-                    <label className="required-field">Giorni della settimana</label>
-                    <WeekdayPicker value={weekdays} onChange={setWeekdays} />
-                    {weekdays.length > 0 && (
-                        <span className="info-badge">{weekdays.length} giorn{weekdays.length === 1 ? 'o' : 'i'} selezionat{weekdays.length === 1 ? 'o' : 'i'}</span>
-                    )}
-                </div>
-
+                {/* --- BLOCCO 1: ORA INIZIO / FINE --- */}
                 <div className="time-group">
                     <div className="form-group">
                         <label className="required-field">Ora Inizio (HH:MM)</label>
@@ -151,20 +177,42 @@ const DowntimeSchedule = () => {
                     </div>
                 </div>
 
+                {/* --- BLOCCO 2: GIORNI SETTIMANA --- */}
                 <div className="form-group">
-                    <label>Ripeti per i prossimi X giorni</label>
-                    <input 
-                        type="number" 
-                        min="0" 
-                        max="365"
-                        value={recurrence} 
-                        onChange={(e) => setRecurrence(parseInt(e.target.value))}
-                        placeholder="0 = solo oggi"
-                    />
+                    <label className="required-field">Giorni della settimana (Select Days)</label>
+                    <WeekdayPicker value={weekdays} onChange={setWeekdays} />
+                    {weekdays.length > 0 && (
+                        <span className="info-badge">{weekdays.length} giorn{weekdays.length === 1 ? 'o' : 'i'} selezionat{weekdays.length === 1 ? 'o' : 'i'}</span>
+                    )}
+                </div>
+
+                {/* --- BLOCCO 3: DURATA --- */}
+                <div className="form-group">
+                    <label className="required-field">Ripeti per (Durata)</label>
+                    <div className="duration-group">
+                        <input 
+                            type="number" 
+                            min="1" 
+                            max="365"
+                            value={durationValue} 
+                            onChange={(e) => setDurationValue(parseInt(e.target.value))}
+                            className="duration-value"
+                        />
+                        <select 
+                            value={durationUnit} 
+                            onChange={(e) => setDurationUnit(e.target.value)}
+                            className="duration-unit"
+                        >
+                            <option value="days">Giorni</option>
+                            <option value="weeks">Settimane</option>
+                            <option value="months">Mesi</option>
+                        </select>
+                    </div>
                     <span className="info-badge">
-                        {recurrence === 0 ? 'Solo oggi' : `Si ripeterà per ${recurrence} giorni`}
+                        {getDurationText()}
                     </span>
                 </div>
+                {/* --- FINE BLOCCHI RIORDINATI --- */}
 
                 <div className="form-group">
                     <label>Commento</label>

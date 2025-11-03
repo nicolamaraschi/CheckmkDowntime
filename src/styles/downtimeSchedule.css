@@ -315,3 +315,24 @@
     margin-bottom: 24px;
   }
 }
+
+
+/* Aggiungi in src/styles/downtimeSchedule.css */
+
+.duration-group {
+  display: flex;
+  gap: 10px;
+}
+
+.duration-group .duration-value {
+  flex: 1; /* Occupa 1 parte di spazio */
+}
+
+.duration-group .duration-unit {
+  flex: 2; /* Occupa 2 parti di spazio, rendendolo più largo */
+  padding: 10px; /* Assicura che l'altezza sia uguale all'input */
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+  background-color: #fff;
+  font-size: 1rem;
+}

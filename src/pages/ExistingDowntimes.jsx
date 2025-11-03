@@ -93,9 +93,15 @@ const ExistingDowntimes = () => {
         }
     }, [token, refreshToken, logout, abortController]);
 
-    // --- NUOVA FUNZIONE PER ELIMINARE ---
-    const handleDeleteDowntime = async (downtimeId) => {
-        if (!downtimeId || !window.confirm(`Sei sicuro di voler eliminare il downtime ${downtimeId}?`)) {
+    // --- FUNZIONE PER ELIMINARE (MODIFICATA) ---
+    const handleDeleteDowntime = async (downtimeId, siteId) => { // <-- MODIFICA: Aggiunto siteId
+        
+        // <-- MODIFICA: Aggiunto controllo su siteId
+        if (!downtimeId || !siteId || !window.confirm(`Sei sicuro di voler eliminare il downtime ${downtimeId} dal sito ${siteId}?`)) {
+            if (!siteId) {
+                console.error("Tentativo di eliminazione fallito: site_id mancante.", downtimeId);
+                setError("Errore: Impossibile trovare il 'site_id' per questo downtime. Dati corrotti.");
+            }
             return;
         }
     
@@ -104,12 +110,14 @@ const ExistingDowntimes = () => {
             return;
         }
         
-        // Uso isLoading per bloccare altri bottoni
         setIsLoading(true); 
         setError(null);
+        
+        // <-- MODIFICA: Aggiunto site_id come query parameter
+        const apiUrl = `/api/downtimes/${downtimeId}?site_id=${encodeURIComponent(siteId)}`;
     
         try {
-            const response = await fetch(`/api/downtimes/${downtimeId}`, {
+            const response = await fetch(apiUrl, { // <-- MODIFICA: usata variabile apiUrl
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -120,13 +128,13 @@ const ExistingDowntimes = () => {
                 const newToken = await refreshToken();
                 if (newToken) {
                     // Riprova
-                    const retryResponse = await fetch(`/api/downtimes/${downtimeId}`, {
+                    const retryResponse = await fetch(apiUrl, { // <-- MODIFICA: usata variabile apiUrl
                         method: 'DELETE',
                         headers: {
                             'Authorization': `Bearer ${newToken}`
                         }
                     });
-                    if (!retryResponse.ok) throw new Error(`Errore: ${retryResponse.status}`);
+                    if (!retryResponse.ok && retryResponse.status !== 204) throw new Error(`Errore: ${retryResponse.status}`);
                 } else {
                      setError("Sessione scaduta. Esegui nuovamente il login.");
                      logout();
@@ -139,7 +147,6 @@ const ExistingDowntimes = () => {
             }
             
             // Successo (status 200, 202, o 204)
-            // Rimuovi il downtime dalla lista (aggiorna lo stato)
             setDowntimes(prevDowntimes => 
                 prevDowntimes.filter(dt => dt.id !== downtimeId)
             );
@@ -151,7 +158,7 @@ const ExistingDowntimes = () => {
             setIsLoading(false);
         }
     };
-    // --- FINE NUOVA FUNZIONE ---
+    // --- FINE FUNZIONE MODIFICATA ---
 
 
     // Pulisci le risorse quando il componente viene smontato
@@ -388,45 +395,48 @@ const ExistingDowntimes = () => {
                             <tr>
                                 <th>Host</th>
                                 <th>Cliente</th>
+                                <th>Sito</th> {/* <-- Aggiunta colonna Sito */}
                                 <th>Inizio</th>
                                 <th>Fine</th>
                                 <th>Autore</th>
                                 <th>Commento</th>
-                                <th>Azioni</th> {/* <-- NUOVA COLONNA */}
+                                <th>Azioni</th>
                             </tr>
                         </thead>
                         <tbody>
                             {downtimes.map((dt, idx) => {
                                 const hostName = dt.extensions?.host_name || 'N/A';
                                 const clientFolder = hostFolderMap.get(hostName) || '/';
+                                const siteId = dt.extensions?.site || 'N/A'; // <-- Leggiamo il site_id
                                 
                                 const now = new Date();
                                 const startTime = dt.extensions?.start_time ? new Date(dt.extensions.start_time) : null;
                                 const endTime = dt.extensions?.end_time ? new Date(dt.extensions.end_time) : null;
                                 const isActive = startTime && endTime && startTime <= now && endTime >= now;
                                 
-                                // USA dt.id COME CHIAVE PER LA RIGA
                                 return (
                                     <tr key={dt.id || idx} className={isActive ? 'active-downtime' : ''}>
                                         <td>{hostName}</td>
                                         <td>{clientFolder}</td>
+                                        <td>{siteId}</td> {/* <-- Mostriamo il site_id */}
                                         <td>{startTime ? startTime.toLocaleString() : 'N/A'}</td>
                                         <td>{endTime ? endTime.toLocaleString() : 'N/A'}</td>
                                         <td>{dt.extensions?.author || 'N/A'}</td>
                                         <td>{dt.extensions?.comment || 'N/A'}</td>
                                         
-                                        {/* --- NUOVA CELLA CON PULSANTE ELIMINA --- */}
                                         <td>
                                             <button 
                                                 className="delete-button"
-                                                onClick={() => handleDeleteDowntime(dt.id)}
-                                                disabled={isLoading} // Disabilitato se un'altra azione è in corso
+                                                // --- MODIFICA CHIAVE ---
+                                                // Passiamo sia l'ID che il siteId
+                                                onClick={() => handleDeleteDowntime(dt.id, siteId)}
+                                                // --- FINE MODIFICA ---
+                                                disabled={isLoading}
                                                 title={`Elimina downtime ${dt.id}`}
                                             >
                                                 🗑️
                                             </button>
                                         </td>
-                                        {/* --- FINE --- */}
                                         
                                     </tr>
                                 );
