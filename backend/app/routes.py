@@ -419,88 +419,68 @@ async def get_downtimes(
 @router.post("/schedule", response_model=DowntimeResponse)
 async def schedule_downtime(request: Request, req: DowntimeRequest, token: str = Depends(get_current_user)):
     request_id = f"req-{int(time.time())}"
-    logger.info(f"[{request_id}] POST /schedule - Request received")
-    logger.info(f"[{request_id}] Request data: host={req.host}, giorni={req.giorni}, startTime={req.startTime}, endTime={req.endTime}, ripeti={req.ripeti}")
+    logger.info(f"[{request_id}] POST /schedule - Request received for {len(req.hosts)} hosts")
     
     config = get_checkmk_config()
     api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
     
     try:
-        host = req.host
-        giorni_feriali = req.giorni # Ora contiene solo giorni da 0 a 4
-        start_time_user = req.startTime # Orario dell'utente per i giorni feriali
-        end_time_user = req.endTime     # Orario dell'utente per i giorni feriali
+        # --- INIZIO MODIFICHE ---
+        hosts = req.hosts # Lista di host dal payload
+        giorni_feriali = req.giorni
+        start_time_user = req.startTime
+        end_time_user = req.endTime
         ripeti_val = req.ripeti
         commento = req.commento
         
         ripeti = 0
         if isinstance(ripeti_val, str):
-             # Questa logica 'weekend'/'domenica' non è più usata dal frontend,
-             # ma la lasciamo per sicurezza se il frontend non fosse aggiornato.
             if ripeti_val == "domenica":
                 ripeti = 30
-                logger.info(f"[{request_id}] 'domenica' recurrence translated to 30 days")
             elif ripeti_val == "weekend":
                 ripeti = 30
-                logger.info(f"[{request_id}] 'weekend' recurrence translated to 30 days")
             else:
                 ripeti = 0
-                logger.warning(f"[{request_id}] Unknown string recurrence value: {ripeti_val}, using 0 days")
         else:
             ripeti = ripeti_val
-            logger.info(f"[{request_id}] Using numeric recurrence: {ripeti} days")
+        # --- FINE MODIFICHE ---
 
         today = datetime.today()
         l_start = []
         l_end = []
         
-        logger.info(f"[{request_id}] Calculating downtime dates for {ripeti+1} days starting from {today}")
+        logger.info(f"[{request_id}] Calculating downtime dates for {ripeti+1} days")
         
+        # 1. Calcola i periodi di tempo UNA SOLA VOLTA
         for i in range(ripeti + 1):
             day = today + timedelta(days=i)
             current_weekday = day.weekday() # 0=Lunedì, 5=Sabato, 6=Domenica
             
-            # Flag per sapere se dobbiamo aggiungere questo giorno
             process_day = False
             
-            # --- INIZIO LOGICA MODIFICATA ---
             if current_weekday in giorni_feriali:
-                # È un giorno feriale selezionato dall'utente
                 logger.debug(f"[{request_id}] Applying user time for weekday: {day}")
                 start_dt = datetime.strptime(start_time_user, "%H:%M")
                 end_dt = datetime.strptime(end_time_user, "%H:%M")
                 process_day = True
                 
             elif current_weekday == 5 or current_weekday == 6:
-                # È Sabato o Domenica, lo aggiungiamo SEMPRE
                 logger.debug(f"[{request_id}] Applying all-day logic for weekend: {day}")
                 start_dt = datetime.strptime("00:00", "%H:%M")
                 end_dt = datetime.strptime("23:59", "%H:%M")
                 process_day = True
             
             else:
-                # È un giorno feriale NON selezionato, lo saltiamo
                 logger.debug(f"[{request_id}] Skipping weekday: {day}")
                 continue
-            # --- FINE LOGICA MODIFICATA ---
 
             if process_day:
-                day_start = datetime(
-                    day.year, day.month, day.day, 
-                    start_dt.hour, start_dt.minute
-                )
+                day_start = datetime(day.year, day.month, day.day, start_dt.hour, start_dt.minute)
                 
                 if end_dt.time() < start_dt.time():
-                    day_end = datetime(
-                        day.year, day.month, day.day,
-                        end_dt.hour, end_dt.minute
-                    ) + timedelta(days=1)
-                    logger.debug(f"[{request_id}] Overnight downtime detected (end < start)")
+                    day_end = datetime(day.year, day.month, day.day, end_dt.hour, end_dt.minute) + timedelta(days=1)
                 else:
-                    day_end = datetime(
-                        day.year, day.month, day.day,
-                        end_dt.hour, end_dt.minute
-                    )
+                    day_end = datetime(day.year, day.month, day.day, end_dt.hour, end_dt.minute)
                 
                 tz_start = calcolo_dst(day_start)
                 tz_end = calcolo_dst(day_end)
@@ -510,18 +490,12 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
                 
                 l_start.append(formatted_start)
                 l_end.append(formatted_end)
-                
-                logger.debug(f"[{request_id}] Added downtime: {formatted_start} to {formatted_end}")
         
-        logger.info(f"[{request_id}] Generated {len(l_start)} downtime periods")
+        logger.info(f"[{request_id}] Generated {len(l_start)} downtime periods per host.")
         
         if len(l_start) == 0:
             logger.warning(f"[{request_id}] No downtime periods were generated!")
-            return {
-                "start_times": [],
-                "end_times": [],
-                "responses": []
-            }
+            return {"start_times": [], "end_times": [], "responses": []}
         
         logger.info(f"[{request_id}] Connecting to Checkmk API: {api_url}")
         
@@ -532,31 +506,33 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
         }
 
         tasks = []
-        
-        logger.info(f"[{request_id}] Preparing {len(l_end)} downtime schedule requests to run in parallel...")
+        total_tasks_count = len(hosts) * len(l_start)
+        logger.info(f"[{request_id}] Preparing {total_tasks_count} total downtime schedule requests ({len(hosts)} hosts * {len(l_start)} periods)...")
 
-        async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
-            for i in range(len(l_end)):
-                payload = {
-                    'start_time': l_start[i],
-                    'end_time': l_end[i],
-                    'recur': 'fixed',
-                    'duration': 0,
-                    'comment': commento,
-                    'downtime_type': 'host',
-                    'host_name': host,
-                }
-                
-                tasks.append(post_downtime(
-                    session=session,
-                    url=f"{api_url}/domain-types/downtime/collections/host",
-                    payload=payload,
-                    request_id=request_id,
-                    index=i,
-                    total=len(l_end)
-                ))
+        # 2. Crea i task per TUTTI gli host e TUTTI i periodi
+        async with httpx.AsyncClient(headers=headers, timeout=300.0) as session: # Timeout 5 min per batch
+            for host in hosts: # <-- LOOP SUGLI HOST
+                for i in range(len(l_end)): # Loop sui periodi
+                    payload = {
+                        'start_time': l_start[i],
+                        'end_time': l_end[i],
+                        'recur': 'fixed',
+                        'duration': 0,
+                        'comment': commento,
+                        'downtime_type': 'host',
+                        'host_name': host, # <-- Usa l'host corrente
+                    }
+                    
+                    tasks.append(post_downtime(
+                        session=session,
+                        url=f"{api_url}/domain-types/downtime/collections/host",
+                        payload=payload,
+                        request_id=request_id,
+                        index=len(tasks), # Indice progressivo
+                        total=total_tasks_count
+                    ))
             
-            logger.info(f"[{request_id}] Sending {len(tasks)} requests...")
+            logger.info(f"[{request_id}] Sending {len(tasks)} requests in parallel...")
             start_exec_time = time.time()
             risposta = await asyncio.gather(*tasks)
             exec_time = time.time() - start_exec_time
@@ -565,6 +541,7 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
         success_count = risposta.count("Done")
         logger.info(f"[{request_id}] Schedule complete: {success_count}/{len(risposta)} requests succeeded")
         
+        # Restituiamo solo gli start/end time del primo host (solo come info)
         return {
             "start_times": l_start,
             "end_times": l_end,
@@ -578,7 +555,6 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg
         )
-
 
 # Funzione helper per 'schedule_downtime' (necessaria)
 async def post_downtime(session: httpx.AsyncClient, url: str, payload: dict, request_id: str, index: int, total: int) -> str:

@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 from datetime import datetime
 
 class DowntimeRequest(BaseModel):
-    host: str
+    hosts: List[str]
     giorni: List[int]
     startTime: str
     endTime: str

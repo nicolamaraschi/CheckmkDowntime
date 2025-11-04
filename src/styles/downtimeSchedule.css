@@ -181,3 +181,70 @@
   border: 1px solid #f5c6cb;
 }
 
+.add-host-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.add-host-group select {
+  flex: 1; /* Il dropdown occupa lo spazio rimanente */
+}
+
+.add-host-btn {
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-host-btn:hover {
+  background-color: #0056b3;
+}
+
+.add-host-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Contenitore per la lista di host selezionati */
+.host-list-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  min-height: 40px;
+}
+
+.host-tag {
+  display: flex;
+  align-items: center;
+  background-color: #e0e0e0;
+  color: #333;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.host-tag button {
+  background: none;
+  border: none;
+  color: #777;
+  font-weight: bold;
+  font-size: 1.1rem;
+  cursor: pointer;
+  margin-left: 8px;
+  padding: 0 5px;
+}
+
+.host-tag button:hover {
+  color: #d9534f; /* Rosso */
+}

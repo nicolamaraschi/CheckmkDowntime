@@ -9,8 +9,12 @@ import Loader from '../components/Loader';
 
 const DowntimeSchedule = () => {
     const [selectedClient, setSelectedClient] = useState('');
-    const [selectedHost, setSelectedHost] = useState('');
-    const [weekdays, setWeekdays] = useState([]); // Ora conterrà solo 0-4
+    
+    // --- MODIFICA 1: Gestione host ---
+    const [selectedHost, setSelectedHost] = useState(''); // Host corrente nel dropdown
+    const [hostList, setHostList] = useState([]);         // Lista di host da programmare
+
+    const [weekdays, setWeekdays] = useState([]);
     const [startTime, setStartTime] = useState('00:00');
     const [endTime, setEndTime] = useState('01:00');
     
@@ -29,20 +33,32 @@ const DowntimeSchedule = () => {
         setSelectedHost('');
     }, [selectedClient]);
 
+    // --- NUOVA FUNZIONE: Aggiungi host alla lista ---
+    const handleAddHost = () => {
+        if (selectedHost && !hostList.includes(selectedHost)) {
+            setHostList([...hostList, selectedHost]);
+            setSelectedHost(''); // Resetta il dropdown per la prossima selezione
+        }
+    };
+    
+    // --- NUOVA FUNZIONE: Rimuovi host dalla lista ---
+    const handleRemoveHost = (hostToRemove) => {
+        setHostList(prevList => prevList.filter(host => host !== hostToRemove));
+    };
+
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError(null);
+        setSuccess(null);
 
-        if (!selectedHost) {
-            setError("Per favore, seleziona un host.");
-            setSuccess(null);
+        // --- MODIFICA 2: Controllo sulla lista ---
+        if (hostList.length === 0) {
+            setError("Per favore, aggiungi almeno un host alla lista.");
             return;
         }
         
-        // --- MODIFICA ---
-        // Ora è possibile non selezionare giorni (0)
-        // se l'utente vuole impostare *solo* il weekend.
         if (weekdays.length === 0) {
-            // Non è un errore, ma avvisiamo l'utente
             if (!window.confirm("Non hai selezionato giorni feriali. Verrà impostato il downtime SOLO per Sabato e Domenica. Continuare?")) {
                 return;
             }
@@ -50,13 +66,10 @@ const DowntimeSchedule = () => {
 
         if (startTime === endTime) {
              setError("L'ora di inizio e fine non possono coincidere.");
-             setSuccess(null);
              return;
         }
 
         setLoading(true);
-        setError(null);
-        setSuccess(null);
 
         let totalDays = 0;
         switch (durationUnit) {
@@ -64,7 +77,7 @@ const DowntimeSchedule = () => {
                 totalDays = durationValue * 7;
                 break;
             case 'months':
-                totalDays = durationValue * 30; // Usiamo 30 giorni come approssimazione
+                totalDays = durationValue * 30;
                 break;
             default:
                 totalDays = durationValue * 7;
@@ -72,9 +85,10 @@ const DowntimeSchedule = () => {
         
         const repeatDaysForBackend = totalDays > 0 ? totalDays - 1 : 0;
 
+        // --- MODIFICA 3: Invia la lista di host ---
         const payload = {
-            host: selectedHost,
-            giorni: weekdays, // Invia solo i giorni feriali (0-4)
+            hosts: hostList, // Invia la lista
+            giorni: weekdays,
             startTime: startTime,
             endTime: endTime,
             ripeti: repeatDaysForBackend, 
@@ -100,12 +114,13 @@ const DowntimeSchedule = () => {
             const errorsInResponses = result.responses.filter(r => r !== 'Done');
             if (errorsInResponses.length > 0) {
                 const firstError = errorsInResponses[0];
-                setError(`Operazione completata con ${errorsInResponses.length} errori. Primo errore: ${firstError}`);
+                setError(`Operazione completata con ${errorsInResponses.length} errori su ${result.responses.length} task. Primo errore: ${firstError}`);
             } else {
-                setSuccess(`✓ Downtime programmato con successo per ${selectedHost}! (${result.responses.length} slot creati)`);
+                setSuccess(`✓ Downtime programmato con successo per ${hostList.length} host! (${result.responses.length} slot totali creati)`);
                 // Reset del form
                 setSelectedClient('');
                 setSelectedHost('');
+                setHostList([]); // Resetta la lista
                 setWeekdays([]);
                 setDurationValue(1);
                 setDurationUnit('weeks');
@@ -123,7 +138,7 @@ const DowntimeSchedule = () => {
         return (
             <div className="downtime-container">
                 <h1>⏳ Programmazione in corso...</h1>
-                <Loader text="Creazione downtime in corso. Questo può richiedere fino a 30 secondi." />
+                <Loader text={`Creazione di ${hostList.length * (durationValue * 7)} slot di downtime... Questo può richiedere diversi minuti.`} />
                 <div style={{ 
                     textAlign: 'center', 
                     marginTop: '20px', 
@@ -146,40 +161,68 @@ const DowntimeSchedule = () => {
 
     return (
         <div className="downtime-container">
-            <h1>📅 Programma Downtime</h1>
+            <h1>📅 Programma Downtime Massivo</h1>
             
             <form className="downtime-form" onSubmit={handleSubmit}>
 
+                {/* --- BLOCCO 1: SELEZIONE HOST --- */}
                 <div className="form-group">
-                    <label className="required-field">Cliente</label>
+                    <label className="required-field">1. Seleziona Host da Aggiungere</label>
                     <ClientSelector selectedClient={selectedClient} setSelectedClient={setSelectedClient} />
-                    {selectedClient && (
-                        <span className="info-badge">Cliente selezionato: {selectedClient}</span>
-                    )}
+                    
+                    <div className="add-host-group">
+                        <HostSelector
+                            selectedHost={selectedHost}
+                            setSelectedHost={setSelectedHost}
+                            selectedClient={selectedClient}
+                        />
+                        <button 
+                            type="button" 
+                            className="add-host-btn" 
+                            onClick={handleAddHost}
+                            disabled={!selectedHost}
+                        >
+                            Aggiungi +
+                        </button>
+                    </div>
                 </div>
 
-                <div className="form-group">
-                    <label className="required-field">Host</label>
-                    <HostSelector
-                        selectedHost={selectedHost}
-                        setSelectedHost={setSelectedHost}
-                        selectedClient={selectedClient}
-                    />
-                    {selectedHost && (
-                        <span className="info-badge">Host selezionato: {selectedHost}</span>
-                    )}
-                </div>
+                {/* --- NUOVO BLOCCO: LISTA HOST --- */}
+                {hostList.length > 0 && (
+                    <div className="form-group">
+                        <label>Host Selezionati ({hostList.length})</label>
+                        <div className="host-list-preview">
+                            {hostList.map(host => (
+                                <span key={host} className="host-tag">
+                                    {host}
+                                    <button 
+                                        type="button" 
+                                        onClick={() => handleRemoveHost(host)}
+                                        title={`Rimuovi ${host}`}
+                                    >
+                                        &times;
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                
+                {/* --- BLOCCO 2: CONFIGURAZIONE (uguale per tutti) --- */}
+                <hr style={{border: '1px solid #f0f0f0', margin: '15px 0'}} />
+                
+                <label className="required-field" style={{fontWeight: 600, fontSize: '1.1rem'}}>2. Configura il Downtime</label>
 
                 <div className="time-group">
                     <div className="form-group">
-                        <label className="required-field">Ora Inizio (HH:MM)</label>
+                        <label className="required-field">Ora Inizio Feriali (HH:MM)</label>
                         <TimePicker 
                             value={startTime} 
                             onChange={setStartTime} 
                         />
                     </div>
                     <div className="form-group">
-                        <label className="required-field">Ora Fine (HH:MM)</label>
+                        <label className="required-field">Ora Fine Feriali (HH:MM)</label>
                         <TimePicker 
                             value={endTime} 
                             onChange={setEndTime} 
@@ -187,24 +230,14 @@ const DowntimeSchedule = () => {
                     </div>
                 </div>
 
-
                 <div className="form-group">
-                    {/* --- MODIFICA TESTO --- */}
                     <label>Giorni feriali (Opzionale)</label>
                     <WeekdayPicker value={weekdays} onChange={setWeekdays} />
-                    
-                    {/* --- NOTA INFORMATIVA AGGIORNATA --- */}
                     <span className="info-badge" style={{
-                        marginTop: '10px', 
-                        backgroundColor: '#e6f7ff', 
-                        color: '#0056b3', 
-                        textAlign: 'left',
-                        display: 'block',
-                        padding: '10px'
+                        marginTop: '10px', backgroundColor: '#e6f7ff', color: '#0056b3', 
+                        textAlign: 'left', display: 'block', padding: '10px'
                     }}>
-                        ℹ️ **Nota:** Il downtime per **Sabato e Domenica** (00:00 - 23:59) viene aggiunto **automaticamente** per tutta la durata selezionata.
-                        <br/>
-                        Seleziona i giorni qui sopra solo se vuoi aggiungere un downtime anche nei giorni feriali (es. Lun-Ven).
+                        ℹ️ **Nota:** Il downtime per **Sabato e Domenica** (00:00 - 23:59) viene aggiunto **automaticamente**.
                     </span>
                 </div>
 
@@ -239,14 +272,14 @@ const DowntimeSchedule = () => {
                         type="text" 
                         value={commento} 
                         onChange={(e) => setCommento(e.target.value)}
-                        placeholder="Es. Spegnimento weekend"
+                        placeholder="Es. Spegnimento weekend e manutenzione"
                         maxLength={200}
                     />
                 </div>
 
                 <div className="form-actions">
-                    <button type="submit" className="submit-btn" disabled={loading}>
-                        {loading ? 'Programmazione...' : '🚀 Programma Downtime'}
+                    <button type="submit" className="submit-btn" disabled={loading || hostList.length === 0}>
+                        {loading ? 'Programmazione...' : `🚀 Programma per ${hostList.length} Host`}
                     </button>
                 </div>
 

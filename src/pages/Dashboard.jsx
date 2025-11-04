@@ -1,69 +1,98 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useApi } from '../hooks/useApi';
-import '../styles/dashboard.css';
+import { useNavigate } from 'react-router-dom'; // Importiamo useNavigate
 import Loader from '../components/Loader';
+// Rimosso import TestApi
+import '../styles/dashboard.css';
 
-const Dashboard = () => {
-    const { data: stats, loading, error, fromCache } = useApi('stats');
-    const { data: downtimeData } = useApi('downtimes');
-    
-    // Calcola i downtime attualmente attivi
-    const activeDowntimes = useMemo(() => {
-        if (!downtimeData?.downtimes) return 0;
-        
-        const now = new Date();
-        return downtimeData.downtimes.filter(dt => {
-            // Controlla se il downtime è attualmente attivo
-            const startTime = dt.extensions?.start_time ? new Date(dt.extensions.start_time) : null;
-            const endTime = dt.extensions?.end_time ? new Date(dt.extensions.end_time) : null;
-            
-            if (!startTime || !endTime) return false;
-            
-            return startTime <= now && endTime >= now;
-        }).length;
-    }, [downtimeData]);
-    
+// Componente riutilizzabile per le card
+const StatCard = ({ title, value, loading, error, icon }) => {
+    let content;
     if (loading) {
-        return (
-            <div className="dashboard-container">
-                <Loader text="Caricamento statistiche..." />
-            </div>
-        );
-    }
-
-    if (error) {
-        return <div className="dashboard-container">Errore nel caricamento: {error}</div>;
+        content = <div className="stat-value-loading"></div>;
+    } else if (error) {
+        content = <span className="stat-error">Errore</span>;
+    } else {
+        content = value;
     }
 
     return (
+        <div className="stat-card">
+            <div className="stat-icon">{icon}</div>
+            <div className="stat-info">
+                <div className="stat-title">{title}</div>
+                <div className="stat-value">{content}</div>
+            </div>
+        </div>
+    );
+};
+
+// Componente per le Azioni Rapide
+const QuickActions = () => {
+    const navigate = useNavigate();
+
+    return (
+        <div className="stat-card action-card">
+             <div className="stat-icon">⚡</div>
+             <div className="stat-info">
+                <div className="stat-title">AZIONI RAPIDE</div>
+                <div className="action-buttons-container">
+                    <button 
+                        className="action-button primary"
+                        onClick={() => navigate('/schedule')}
+                    >
+                        📅 Programma
+                    </button>
+                    <button 
+                        className="action-button secondary"
+                        onClick={() => navigate('/existing')}
+                    >
+                        🔍 Vedi Esistenti
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+const Dashboard = () => {
+    // Chiamata 1: per Host Totali (da /stats)
+    const { data: statsData, loading: statsLoading, error: statsError } = useApi('stats');
+    
+    // Chiamata 2: per Clienti Totali (da /clients)
+    const { data: clientsData, loading: clientsLoading, error: clientsError } = useApi('clients');
+
+    const totalHosts = statsData?.totalHosts;
+    const totalClients = clientsData?.length; 
+
+    return (
         <div className="dashboard-container">
-            <h1>Dashboard</h1>
-            {fromCache && (
-                <div className="cache-notification">
-                    <i>ℹ️</i> Dati caricati dalla cache
-                </div>
-            )}
-            <div className="stats-container">
-                <div className="stat-card">
-                    <h2 className="stat-title">Host Totali</h2>
-                    <p className="stat-value">{stats ? stats.totalHosts : '...'}</p>
-                </div>
-                <div className="stat-card">
-                    <h2 className="stat-title">Downtime Attivi</h2>
-                    <p className="stat-value">{activeDowntimes}</p>
-                </div>
-            </div>
+            <h1>📊 Dashboard Principale</h1>
+            <p className="dashboard-subtitle">Panoramica dello stato del sistema e dei dati di Checkmk.</p>
             
-            <div className="welcome-card">
-                <h2>Benvenuto nel Gestore Downtime di Checkmk</h2>
-                <p>
-                    Usa il menu a sinistra per programmare nuovi downtime o visualizzare quelli esistenti.
-                </p>
-                <ul>
-                    <li><b>Programma Downtime:</b> Seleziona host, giorni e orari per impostare un nuovo downtime.</li>
-                    <li><b>Downtime Esistenti:</b> Visualizza e gestisci i downtime attualmente attivi.</li>
-                </ul>
+            <div className="stats-container three-cards">
+                <StatCard 
+                    title="Host Totali"
+                    value={totalHosts}
+                    loading={statsLoading}
+                    error={statsError}
+                    icon="🖥️"
+                />
+                
+                <StatCard 
+                    title="Clienti Totali"
+                    value={totalClients}
+                    loading={clientsLoading}
+                    error={clientsError}
+                    icon="🏢"
+                />
+
+                <QuickActions />
             </div>
+
+            {/* --- SEZIONE API TEST RIMOSSA --- */}
+            
         </div>
     );
 };
