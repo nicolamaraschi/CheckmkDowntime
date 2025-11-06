@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Hub } from 'aws-amplify';
+import { Hub } from '@aws-amplify/core';
 import { getCurrentUser, getToken, signOut, signIn } from './cognito';
 
 const AuthContext = createContext(null);

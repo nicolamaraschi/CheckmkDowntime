@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Auth } from 'aws-amplify';
+import { Auth } from '@aws-amplify/auth';
 import '../styles/login.css';
 
 const NewPassword = () => {
