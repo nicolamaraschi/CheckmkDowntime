@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { useAuth } from '../auth/AuthProvider'; // Importiamo il provider auth
+import { useAuth } from '../auth/AuthProvider';
 import Loader from './Loader';
-// Non importiamo più 'api' da useApi
 
 const TestApi = () => {
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     
-    // Prendiamo token, refreshToken e logout dal nostro hook Auth
-    const { token, refreshToken, logout } = useAuth(); 
+    const { token, refreshToken, logout } = useAuth();
 
     const runTest = async () => {
         setLoading(true);
@@ -23,8 +21,7 @@ const TestApi = () => {
         }
 
         try {
-            // --- INIZIO CORREZIONE ---
-            // Usiamo fetch() invece di api.get()
+            // Usa il proxy direttamente
             const response = await fetch('/api/connection-test', {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -62,7 +59,6 @@ const TestApi = () => {
                 const data = await response.json();
                 setResult(data);
             }
-            // --- FINE CORREZIONE ---
 
         } catch (err) {
             setError(err.message || 'Errore sconosciuto nel test API');
