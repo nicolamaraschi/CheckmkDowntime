@@ -23,15 +23,25 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     try {
       const result = await login(username, password);
-      
+
       if (result.requireNewPassword) {
         console.log("Password change required");
         // The user object for the challenge is in result.user
         // You might need to pass this to the new password page
         navigate('/new-password');
+      } else if (result.requireMFASetup) {
+        console.log("MFA setup required");
+        // Salva l'utente per il setup MFA
+        sessionStorage.setItem('mfaUser', JSON.stringify(result.user));
+        navigate('/mfa-setup');
+      } else if (result.requireMFA) {
+        console.log("MFA verification required");
+        // Salva l'utente per la verifica MFA
+        sessionStorage.setItem('mfaUser', JSON.stringify(result.user));
+        navigate('/mfa-verification');
       } else {
         console.log("Login successful, navigating...");
         navigate('/');

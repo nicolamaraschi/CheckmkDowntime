@@ -61,10 +61,17 @@ export const AuthProvider = ({ children }) => {
     if (result.success) {
       // The Hub listener will handle setting the user state
       return result;
+    } else if (result.requireNewPassword || result.requireMFA || result.requireMFASetup) {
+      // Return the result with the challenge information
+      return result;
     } else {
       // Let the login page handle the error
       throw result.error;
     }
+  };
+
+  const checkAuth = async () => {
+    await checkUser();
   };
 
   const logout = async () => {
@@ -91,6 +98,7 @@ export const AuthProvider = ({ children }) => {
     login,
     refreshToken,
     logout,
+    checkAuth,
     isAuthenticated: !!user
   };
 
