@@ -1,4 +1,14 @@
-import { Amplify, Auth } from 'aws-amplify';
+import { Amplify } from 'aws-amplify';
+import {
+  signIn as amplifySignIn,
+  signOut as amplifySignOut,
+  getCurrentUser as amplifyGetCurrentUser,
+  fetchAuthSession,
+  confirmSignIn as amplifyConfirmSignIn,
+  setUpTOTP as amplifySetUpTOTP,
+  verifyTOTPSetup,
+  updateMFAPreference,
+} from '@aws-amplify/auth';
 
 // Configurazione Cognito
 Amplify.configure({
@@ -13,49 +23,56 @@ Amplify.configure({
 
 export const signIn = async (username, password) => {
   try {
-    const user = await Auth.signIn(username, password);
+    const output = await amplifySignIn({ username, password });
 
-    // Controlla se e richiesto il cambio password
-    if (user.challengeName === 'NEW_PASSWORD_REQUIRED') {
+    // Controlla se è richiesto il cambio password
+    if (output.nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
       return {
         success: false,
         requireNewPassword: true,
-        user,
+        user: output,
         error: { message: 'E richiesto il cambio password' }
       };
     }
 
-    // Controlla se e richiesta la configurazione MFA
-    if (user.challengeName === 'MFA_SETUP') {
+    // Controlla se è richiesta la configurazione MFA
+    if (output.nextStep?.signInStep === 'CONTINUE_SIGN_IN_WITH_TOTP_SETUP') {
       return {
         success: false,
         requireMfaSetup: true,
-        user,
+        user: output,
         error: { message: 'E richiesta la configurazione MFA' }
       };
     }
 
-    // Controlla se e richiesta la verifica MFA
-    if (user.challengeName === 'SOFTWARE_TOKEN_MFA') {
+    // Controlla se è richiesta la verifica MFA
+    if (output.nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_TOTP_CODE') {
       return {
         success: false,
         requireMfaVerification: true,
-        user,
+        user: output,
         error: { message: 'E richiesta la verifica MFA' }
       };
     }
 
-    return { success: true, user };
+    // Login completato
+    if (output.isSignedIn) {
+      return { success: true, user: output };
+    }
+
+    return { success: false, error: { message: 'Login non completato' } };
   } catch (error) {
     console.error('Error signing in:', error);
     return { success: false, error };
   }
 };
 
-export const completeNewPassword = async (user, newPassword) => {
+export const completeNewPassword = async (signInOutput, newPassword) => {
   try {
-    const loggedUser = await Auth.completeNewPassword(user, newPassword);
-    return { success: true, user: loggedUser };
+    const output = await amplifyConfirmSignIn({
+      challengeResponse: newPassword
+    });
+    return { success: true, user: output };
   } catch (error) {
     console.error('Error completing new password:', error);
     return { success: false, error };
@@ -64,7 +81,7 @@ export const completeNewPassword = async (user, newPassword) => {
 
 export const signOut = async () => {
   try {
-    await Auth.signOut();
+    await amplifySignOut();
     return { success: true };
   } catch (error) {
     console.error('Error signing out:', error);
@@ -74,7 +91,7 @@ export const signOut = async () => {
 
 export const getCurrentUser = async () => {
   try {
-    const user = await Auth.currentAuthenticatedUser();
+    const user = await amplifyGetCurrentUser();
     return { success: true, user };
   } catch (error) {
     console.error('Error getting current user:', error);
@@ -84,8 +101,8 @@ export const getCurrentUser = async () => {
 
 export const getToken = async () => {
   try {
-    const session = await Auth.currentSession();
-    return session.getIdToken().getJwtToken();
+    const session = await fetchAuthSession();
+    return session.tokens?.idToken?.toString();
   } catch (error) {
     console.error('Error getting token:', error);
     return null;
@@ -93,30 +110,37 @@ export const getToken = async () => {
 };
 
 // MFA Functions
-export const confirmSignIn = async (user, code) => {
+export const confirmSignIn = async (signInOutput, code, mfaType = 'TOTP') {
   try {
-    const loggedUser = await Auth.confirmSignIn(user, code, 'SOFTWARE_TOKEN_MFA');
-    return { success: true, user: loggedUser };
+    const output = await amplifyConfirmSignIn({
+      challengeResponse: code
+    });
+    return { success: true, user: output };
   } catch (error) {
     console.error('Error confirming sign in:', error);
     return { success: false, error };
   }
 };
 
-export const setupTOTP = async (user) => {
+export const setupTOTP = async (signInOutput) => {
   try {
-    const code = await Auth.setupTOTP(user);
-    return { success: true, code };
+    const totpSetupDetails = await amplifySetUpTOTP();
+    const code = totpSetupDetails.sharedSecret;
+    return { success: true, code, setupDetails: totpSetupDetails };
   } catch (error) {
     console.error('Error setting up TOTP:', error);
     return { success: false, error };
   }
 };
 
-export const verifyTotpToken = async (user, challengeAnswer) => {
+export const verifyTotpToken = async (signInOutput, challengeAnswer) => {
   try {
-    const loggedUser = await Auth.verifyTotpToken(user, challengeAnswer);
-    return { success: true, user: loggedUser };
+    await verifyTOTPSetup({ code: challengeAnswer });
+    // After verifying, confirm the sign in
+    const output = await amplifyConfirmSignIn({
+      challengeResponse: challengeAnswer
+    });
+    return { success: true, user: output };
   } catch (error) {
     console.error('Error verifying TOTP token:', error);
     return { success: false, error };
@@ -125,7 +149,7 @@ export const verifyTotpToken = async (user, challengeAnswer) => {
 
 export const setPreferredMFA = async (user, mfaType) => {
   try {
-    await Auth.setPreferredMFA(user, mfaType);
+    await updateMFAPreference({ totp: 'PREFERRED' });
     return { success: true };
   } catch (error) {
     console.error('Error setting preferred MFA:', error);
