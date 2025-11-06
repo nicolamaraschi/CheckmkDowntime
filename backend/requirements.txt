@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 requests
+httpx>=0.25.0  # Aggiungi questa riga
 python-dotenv
 pydantic
 python-multipart

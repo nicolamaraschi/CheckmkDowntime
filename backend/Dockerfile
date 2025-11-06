@@ -6,6 +6,9 @@ WORKDIR /app
 COPY ./requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Aggiunge esplicitamente httpx in caso di problemi
+RUN pip install --no-cache-dir httpx>=0.25.0
+
 # Crea directory per i log
 RUN mkdir -p /app/logs
 

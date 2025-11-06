@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "8436:80"  # Modifica qui: espone la porta 80 interna sulla 8436 esterna
     depends_on:
       - backend
     restart: always
@@ -15,12 +15,24 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    # Opzionale: puoi mantenere l'esposizione della porta 8000 per debug o rimuoverla
+    # ports:
+    #   - "8000:8000"  
     environment:
       - CHECKMK_HOST=${CHECKMK_HOST}
       - CHECKMK_SITE=${CHECKMK_SITE}
       - CHECKMK_USER=${CHECKMK_USER}
       - CHECKMK_PASSWORD=${CHECKMK_PASSWORD}
+      - COGNITO_REGION=${COGNITO_REGION:-eu-west-1}
+      - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID:-eu-west-1_E3d6JEkfX}
+      - COGNITO_APP_CLIENT_ID=${COGNITO_APP_CLIENT_ID:-5v6sqab99b9mbb7es880cg6mjc}
       - PYTHONUNBUFFERED=1
     volumes:
       - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/connection-test"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     restart: always
