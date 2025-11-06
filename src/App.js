@@ -6,6 +6,7 @@ import ProtectedRoute from './auth/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import NewPassword from './pages/NewPassword';
+import MFAVerification from './pages/MFAVerification';
 import Dashboard from './pages/Dashboard';
 import HostConfig from './pages/HostConfig';
 import DowntimeSchedule from './pages/DowntimeSchedule';
@@ -22,6 +23,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/new-password" element={<NewPassword />} />
+            <Route path="/mfa-verification" element={<MFAVerification />} />
             <Route path="/test-api" element={<TestApi />} />
             <Route
               path="/"

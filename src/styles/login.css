@@ -152,3 +152,109 @@
     transform: rotate(360deg);
   }
 }
+
+/* MFA Verification Styles */
+.mfa-setup {
+  text-align: center;
+  margin: var(--spacing-lg) 0;
+}
+
+.qr-code-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-lg);
+  background: white;
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--spacing-md);
+}
+
+.qr-code {
+  max-width: 250px;
+  height: auto;
+}
+
+.secret-code {
+  margin: var(--spacing-lg) 0;
+  padding: var(--spacing-md);
+  background: #f8f9fa;
+  border-radius: var(--border-radius);
+}
+
+.secret-code p {
+  color: var(--text-color-light);
+  margin-bottom: var(--spacing-sm);
+  font-size: 0.9rem;
+}
+
+.secret-code code {
+  display: inline-block;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 0.3rem;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  color: var(--primary-color);
+  font-weight: 600;
+  letter-spacing: 2px;
+  user-select: all;
+}
+
+.mfa-instructions {
+  text-align: left;
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: #e7f3ff;
+  border-left: 4px solid var(--primary-color);
+  border-radius: var(--border-radius);
+}
+
+.mfa-instructions h3 {
+  margin-top: 0;
+  color: var(--text-color);
+  font-size: 1.1rem;
+}
+
+.mfa-instructions ol {
+  margin: 0;
+  padding-left: var(--spacing-lg);
+}
+
+.mfa-instructions li {
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-color);
+}
+
+.form-group small {
+  display: block;
+  margin-top: var(--spacing-xs);
+  color: var(--text-color-light);
+  font-size: 0.85rem;
+}
+
+.mfa-footer {
+  margin-top: var(--spacing-lg);
+  text-align: center;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  padding: var(--spacing-sm);
+}
+
+.link-button:hover {
+  color: var(--primary-hover-color);
+}
+
+.link-button:disabled {
+  color: var(--text-color-light);
+  cursor: not-allowed;
+  text-decoration: none;
+}

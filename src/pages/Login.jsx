@@ -23,15 +23,19 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     try {
       const result = await login(username, password);
-      
+
       if (result.requireNewPassword) {
         console.log("Password change required");
-        // The user object for the challenge is in result.user
-        // You might need to pass this to the new password page
-        navigate('/new-password');
+        navigate('/new-password', { state: { user: result.user } });
+      } else if (result.requireMfaSetup) {
+        console.log("MFA setup required");
+        navigate('/mfa-verification', { state: { user: result.user, mfaType: 'setup' } });
+      } else if (result.requireMfaVerification) {
+        console.log("MFA verification required");
+        navigate('/mfa-verification', { state: { user: result.user, mfaType: 'verify' } });
       } else {
         console.log("Login successful, navigating...");
         navigate('/');
