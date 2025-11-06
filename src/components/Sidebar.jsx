@@ -1,11 +1,8 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { useAuth } from '../auth/AuthProvider';
 import '../styles/sidebar.css';
 
-const Sidebar = ({ isOpen, closeSidebar }) => {
-  const { user, logout } = useAuth();
-
+const Sidebar = ({ isOpen, closeSidebar, user, logout }) => {
   return (
     <aside className={`sidebar ${isOpen ? 'is-open' : ''}`}>
       <div>

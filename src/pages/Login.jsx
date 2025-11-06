@@ -29,13 +29,13 @@ const Login = () => {
 
       if (result.requireNewPassword) {
         console.log("Password change required");
-        navigate('/new-password', { state: { user: result.user } });
+        navigate('/new-password', { state: { username } }); // ✅ Passa solo username
       } else if (result.requireMfaSetup) {
         console.log("MFA setup required");
-        navigate('/mfa-verification', { state: { user: result.user, mfaType: 'setup' } });
+        navigate('/mfa-verification', { state: { username, mfaType: 'setup' } }); // ✅
       } else if (result.requireMfaVerification) {
         console.log("MFA verification required");
-        navigate('/mfa-verification', { state: { user: result.user, mfaType: 'verify' } });
+        navigate('/mfa-verification', { state: { username, mfaType: 'verify' } }); // ✅
       } else {
         console.log("Login successful, navigating...");
         navigate('/');

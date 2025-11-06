@@ -58,13 +58,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     const result = await signIn(username, password);
-    if (result.success) {
-      // The Hub listener will handle setting the user state
-      return result;
-    } else {
-      // Let the login page handle the error
-      throw result.error;
-    }
+    // Restituisce sempre il risultato completo - la pagina di login gestirà tutti i casi
+    // (success, requireNewPassword, requireMfaSetup, requireMfaVerification, error)
+    return result;
   };
 
   const logout = async () => {

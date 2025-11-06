@@ -4,7 +4,7 @@ import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import '../styles/layout.css';
 
-const Layout = () => {
+const Layout = ({ user, signOut }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
@@ -25,7 +25,7 @@ const Layout = () => {
     <div className={`app-container ${isSidebarOpen ? 'sidebar-is-open' : ''}`}>
       <Navbar toggleSidebar={toggleSidebar} />
       <div className="content-container">
-        <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} />
+        <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} user={user} logout={signOut} />
         <main className="main-content">
           <Outlet />
         </main>

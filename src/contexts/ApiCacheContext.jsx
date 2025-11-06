@@ -1,11 +1,19 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { useAuth } from '../auth/AuthProvider';
+import { AuthProvider, useAuth } from './AuthContext';
 
 const ApiCacheContext = createContext(null);
 
 export const useApiCache = () => useContext(ApiCacheContext);
 
-export const ApiCacheProvider = ({ children }) => {
+export const ApiCacheProvider = ({ children, user, signOut }) => {
+  return (
+    <AuthProvider user={user} signOut={signOut}>
+      <ApiCacheProviderInner>{children}</ApiCacheProviderInner>
+    </AuthProvider>
+  );
+};
+
+const ApiCacheProviderInner = ({ children }) => {
   const [cache, setCache] = useState({});
   const [loading, setLoading] = useState({});
   const { token, refreshToken } = useAuth();
