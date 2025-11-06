@@ -1,293 +1,224 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../auth/AuthProvider';
+import React, { useState } from 'react';
 import ClientSelector from '../components/ClientSelector';
 import HostSelector from '../components/HostSelector';
-import WeekdayPicker from '../components/WeekdayPicker';
 import TimePicker from '../components/TimePicker';
+import WeekdayPicker from '../components/WeekdayPicker';
+import { useApiCache } from '../contexts/ApiCacheContext';
+import { useApi } from '../hooks/useApi';
 import '../styles/downtimeSchedule.css';
 import Loader from '../components/Loader';
 
 const DowntimeSchedule = () => {
-    const [selectedClient, setSelectedClient] = useState('');
-    
-    // --- MODIFICA 1: Gestione host ---
-    const [selectedHost, setSelectedHost] = useState(''); // Host corrente nel dropdown
-    const [hostList, setHostList] = useState([]);         // Lista di host da programmare
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [selectedHosts, setSelectedHosts] = useState([]);
+  const [downtimeType, setDowntimeType] = useState('one-time');
+  const [startTime, setStartTime] = useState('00:00');
+  const [endTime, setEndTime] = useState('01:00');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDays, setSelectedDays] = useState([]);
+  const [comment, setComment] = useState('Scheduled downtime via Web UI');
+  const [message, setMessage] = useState({ type: '', text: '' });
 
-    const [weekdays, setWeekdays] = useState([]);
-    const [startTime, setStartTime] = useState('00:00');
-    const [endTime, setEndTime] = useState('01:00');
-    
-    const [durationValue, setDurationValue] = useState(1);
-    const [durationUnit, setDurationUnit] = useState('weeks'); 
+  const { clearCache } = useApiCache();
 
-    const [commento, setCommento] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(null);
+  // Hook per la chiamata API, impostato su 'manual'
+  const { loading, error, postData } = useApi('/downtimes', { manual: true });
 
-    const { token } = useAuth();
+  const handleClientChange = (client) => {
+    setSelectedClient(client);
+    setSelectedHosts([]); // Resetta gli host quando il cliente cambia
+  };
 
-    // Reset selected host when client changes
-    useEffect(() => {
-        setSelectedHost('');
-    }, [selectedClient]);
+  const handleHostChange = (hosts) => {
+    setSelectedHosts(hosts);
+  };
 
-    // --- NUOVA FUNZIONE: Aggiungi host alla lista ---
-    const handleAddHost = () => {
-        if (selectedHost && !hostList.includes(selectedHost)) {
-            setHostList([...hostList, selectedHost]);
-            setSelectedHost(''); // Resetta il dropdown per la prossima selezione
-        }
-    };
-    
-    // --- NUOVA FUNZIONE: Rimuovi host dalla lista ---
-    const handleRemoveHost = (hostToRemove) => {
-        setHostList(prevList => prevList.filter(host => host !== hostToRemove));
-    };
+  const handleDowntimeTypeChange = (e) => {
+    setDowntimeType(e.target.value);
+  };
 
+  const handleTimeChange = (type, time) => {
+    if (type === 'start') {
+      setStartTime(time);
+    } else {
+      setEndTime(time);
+    }
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError(null);
-        setSuccess(null);
+  const handleDateChange = (type, date) => {
+    if (type === 'start') {
+      setStartDate(date);
+    } else {
+      setEndDate(date);
+    }
+  };
 
-        // --- MODIFICA 2: Controllo sulla lista ---
-        if (hostList.length === 0) {
-            setError("Per favore, aggiungi almeno un host alla lista.");
-            return;
-        }
-        
-        if (weekdays.length === 0) {
-            if (!window.confirm("Non hai selezionato giorni feriali. Verrà impostato il downtime SOLO per Sabato e Domenica. Continuare?")) {
-                return;
-            }
-        }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMessage({ type: '', text: '' });
 
-        if (startTime === endTime) {
-             setError("L'ora di inizio e fine non possono coincidere.");
-             return;
-        }
-
-        setLoading(true);
-
-        let totalDays = 0;
-        switch (durationUnit) {
-            case 'weeks':
-                totalDays = durationValue * 7;
-                break;
-            case 'months':
-                totalDays = durationValue * 30;
-                break;
-            default:
-                totalDays = durationValue * 7;
-        }
-        
-        const repeatDaysForBackend = totalDays > 0 ? totalDays - 1 : 0;
-
-        // --- MODIFICA 3: Invia la lista di host ---
-        const payload = {
-            hosts: hostList, // Invia la lista
-            giorni: weekdays,
-            startTime: startTime,
-            endTime: endTime,
-            ripeti: repeatDaysForBackend, 
-            commento: commento || "Manutenzione programmata"
-        };
-
-        try {
-            const response = await fetch('/api/schedule', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
-            });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.detail || `Errore server: ${response.status}`);
-            }
-
-            const errorsInResponses = result.responses.filter(r => r !== 'Done');
-            if (errorsInResponses.length > 0) {
-                const firstError = errorsInResponses[0];
-                setError(`Operazione completata con ${errorsInResponses.length} errori su ${result.responses.length} task. Primo errore: ${firstError}`);
-            } else {
-                setSuccess(`✓ Downtime programmato con successo per ${hostList.length} host! (${result.responses.length} slot totali creati)`);
-                // Reset del form
-                setSelectedClient('');
-                setSelectedHost('');
-                setHostList([]); // Resetta la lista
-                setWeekdays([]);
-                setDurationValue(1);
-                setDurationUnit('weeks');
-                setCommento('');
-            }
-
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="downtime-container">
-                <h1>⏳ Programmazione in corso...</h1>
-                <Loader text={`Creazione di ${hostList.length * (durationValue * 7)} slot di downtime... Questo può richiedere diversi minuti.`} />
-                <div style={{ 
-                    textAlign: 'center', 
-                    marginTop: '20px', 
-                    color: '#6c757d',
-                    fontSize: '0.95rem'
-                }}>
-                    <p>Non chiudere questa pagina.</p>
-                </div>
-            </div>
-        );
+    if (!selectedClient || selectedHosts.length === 0) {
+      setMessage({ type: 'error', text: 'Per favore, seleziona un cliente e almeno un host.' });
+      return;
     }
 
-    const getDurationText = () => {
-        if (durationValue <= 0) return "Solo per oggi";
-        let unitText = '';
-        if (durationUnit === 'weeks') unitText = durationValue === 1 ? 'settimana' : 'settimane';
-        if (durationUnit === 'months') unitText = durationValue === 1 ? 'mese' : 'mesi';
-        return `Si ripeterà per ${durationValue} ${unitText}`;
+    const author = 'webapp_user'; // Utente statico
+
+    let payload;
+    const basePayload = {
+      client_name: selectedClient.value,
+      host_names: selectedHosts.map(h => h.value),
+      start_time: startTime,
+      end_time: endTime,
+      comment: comment,
+      author: author,
     };
 
-    return (
-        <div className="downtime-container">
-            <h1>📅 Programma Downtime Massivo</h1>
-            
-            <form className="downtime-form" onSubmit={handleSubmit}>
+    if (downtimeType === 'one-time') {
+      payload = {
+        ...basePayload,
+        downtime_type: 'one-time',
+        start_date: startDate,
+        end_date: endDate,
+      };
+    } else { // recurring
+      if (selectedDays.length === 0) {
+        setMessage({ type: 'error', text: 'Per favore, seleziona almeno un giorno per un downtime ricorrente.' });
+        return;
+      }
+      payload = {
+        ...basePayload,
+        downtime_type: 'recurring',
+        weekdays: selectedDays,
+      };
+    }
 
-                {/* --- BLOCCO 1: SELEZIONE HOST --- */}
-                <div className="form-group">
-                    <label className="required-field">1. Seleziona Host da Aggiungere</label>
-                    <ClientSelector selectedClient={selectedClient} setSelectedClient={setSelectedClient} />
-                    
-                    <div className="add-host-group">
-                        <HostSelector
-                            selectedHost={selectedHost}
-                            setSelectedHost={setSelectedHost}
-                            selectedClient={selectedClient}
-                        />
-                        <button 
-                            type="button" 
-                            className="add-host-btn" 
-                            onClick={handleAddHost}
-                            disabled={!selectedHost}
-                        >
-                            Aggiungi +
-                        </button>
-                    </div>
-                </div>
+    try {
+      const response = await postData(payload); // Usa la funzione postData dall'hook
+      if (response && response.success) {
+        setMessage({ type: 'success', text: 'Downtime pianificato con successo!' });
+        // Pulisci la cache per aggiornare le altre viste
+        clearCache('/downtimes');
+        clearCache('/dashboard/stats');
+        // Resetta il form
+        setSelectedClient(null);
+        setSelectedHosts([]);
+        setComment('Scheduled downtime via Web UI');
+      } else {
+        throw new Error(response?.message || 'Errore sconosciuto dal server');
+      }
+    } catch (err) {
+      // L'errore è già gestito dall'hook useApi, ma possiamo impostare un messaggio
+      setMessage({ type: 'error', text: err.message || 'Impossibile pianificare il downtime.' });
+    }
+  };
+  
+  if (loading) {
+    return <Loader message="Pianificazione downtime in corso..." />;
+  }
 
-                {/* --- NUOVO BLOCCO: LISTA HOST --- */}
-                {hostList.length > 0 && (
-                    <div className="form-group">
-                        <label>Host Selezionati ({hostList.length})</label>
-                        <div className="host-list-preview">
-                            {hostList.map(host => (
-                                <span key={host} className="host-tag">
-                                    {host}
-                                    <button 
-                                        type="button" 
-                                        onClick={() => handleRemoveHost(host)}
-                                        title={`Rimuovi ${host}`}
-                                    >
-                                        &times;
-                                    </button>
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                
-                {/* --- BLOCCO 2: CONFIGURAZIONE (uguale per tutti) --- */}
-                <hr style={{border: '1px solid #f0f0f0', margin: '15px 0'}} />
-                
-                <label className="required-field" style={{fontWeight: 600, fontSize: '1.1rem'}}>2. Configura il Downtime</label>
+  return (
+    <div className="downtime-schedule-page">
+      <h2>Pianifica un nuovo Downtime</h2>
+      <p>Stai creando un downtime per il tuo account.</p>
 
-                <div className="time-group">
-                    <div className="form-group">
-                        <label className="required-field">Ora Inizio Feriali (HH:MM)</label>
-                        <TimePicker 
-                            value={startTime} 
-                            onChange={setStartTime} 
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label className="required-field">Ora Fine Feriali (HH:MM)</label>
-                        <TimePicker 
-                            value={endTime} 
-                            onChange={setEndTime} 
-                        />
-                    </div>
-                </div>
-
-                <div className="form-group">
-                    <label>Giorni feriali (Opzionale)</label>
-                    <WeekdayPicker value={weekdays} onChange={setWeekdays} />
-                    <span className="info-badge" style={{
-                        marginTop: '10px', backgroundColor: '#e6f7ff', color: '#0056b3', 
-                        textAlign: 'left', display: 'block', padding: '10px'
-                    }}>
-                        ℹ️ **Nota:** Il downtime per **Sabato e Domenica** (00:00 - 23:59) viene aggiunto **automaticamente**.
-                    </span>
-                </div>
-
-                <div className="form-group">
-                    <label className="required-field">Durata</label>
-                    <div className="duration-group">
-                        <input 
-                            type="number" 
-                            min="1" 
-                            max="365"
-                            value={durationValue} 
-                            onChange={(e) => setDurationValue(parseInt(e.target.value))}
-                            className="duration-value"
-                        />
-                        <select 
-                            value={durationUnit} 
-                            onChange={(e) => setDurationUnit(e.target.value)}
-                            className="duration-unit"
-                        >
-                            <option value="weeks">Settimane</option>
-                            <option value="months">Mesi</option>
-                        </select>
-                    </div>
-                    <span className="info-badge">
-                        {getDurationText()}
-                    </span>
-                </div>
-
-                <div className="form-group">
-                    <label>Commento</label>
-                    <input 
-                        type="text" 
-                        value={commento} 
-                        onChange={(e) => setCommento(e.target.value)}
-                        placeholder="Es. Spegnimento weekend e manutenzione"
-                        maxLength={200}
-                    />
-                </div>
-
-                <div className="form-actions">
-                    <button type="submit" className="submit-btn" disabled={loading || hostList.length === 0}>
-                        {loading ? 'Programmazione...' : `🚀 Programma per ${hostList.length} Host`}
-                    </button>
-                </div>
-
-                {success && <div className="form-message success-message">{success}</div>}
-                {error && <div className="form-message error-message">{error}</div>}
-            </form>
+      {message.text && (
+        <div className={`message-banner ${message.type}`}>
+          {message.text}
         </div>
-    );
+      )}
+      
+      {error && (
+        <div className="message-banner error">
+          Errore API: {error.message}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="downtime-form">
+        <div className="form-card">
+          <h3>1. Seleziona Clienti e Host</h3>
+          <div className="form-group">
+            <label>Cliente</label>
+            <ClientSelector 
+              value={selectedClient} 
+              onChange={handleClientChange} 
+            />
+          </div>
+          <div className="form-group">
+            <label>Host</label>
+            <HostSelector
+              clientId={selectedClient ? selectedClient.value : null}
+              value={selectedHosts}
+              onChange={handleHostChange}
+              isDisabled={!selectedClient}
+            />
+          </div>
+        </div>
+
+        <div className="form-card">
+          <h3>2. Configura Pianificazione</h3>
+          <div className="form-group">
+            <label>Tipo di Downtime</label>
+            <select value={downtimeType} onChange={handleDowntimeTypeChange} className="form-control">
+              <option value="one-time">Una volta</option>
+              <option value="recurring">Ricorrente</option>
+            </select>
+          </div>
+
+          <div className="time-range-selectors">
+            <TimePicker label="Ora Inizio" value={startTime} onChange={(time) => handleTimeChange('start', time)} />
+            <TimePicker label="Ora Fine" value={endTime} onChange={(time) => handleTimeChange('end', time)} />
+          </div>
+
+          {downtimeType === 'one-time' ? (
+            <div className="date-range-selectors">
+              <div className="form-group">
+                <label htmlFor="start-date">Data Inizio</label>
+                <input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => handleDateChange('start', e.target.value)}
+                  className="form-control"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="end-date">Data Fine</label>
+                <input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => handleDateChange('end', e.target.value)}
+                  className="form-control"
+                />
+              </div>
+            </div>
+          ) : (
+            <WeekdayPicker selectedDays={selectedDays} onChange={setSelectedDays} />
+          )}
+        </div>
+
+        <div className="form-card">
+          <h3>3. Commento e Conferma</h3>
+          <div className="form-group">
+            <label htmlFor="comment">Commento</label>
+            <input
+              id="comment"
+              type="text"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              className="form-control"
+              required
+            />
+          </div>
+          <button type="submit" className="submit-button" disabled={loading}>
+            {loading ? 'Pianificazione...' : 'Pianifica Downtime'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 };
 
 export default DowntimeSchedule;

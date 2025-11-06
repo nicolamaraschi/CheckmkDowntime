@@ -1,44 +1,61 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { useAuth } from '../auth/AuthProvider';
+import { 
+  FaTachometerAlt, 
+  FaClock, 
+  FaList, 
+  FaHdd, 
+  FaCog 
+} from 'react-icons/fa';
+// import { useAuth } from '../auth/AuthProvider'; // <-- RIMOSSO
 import '../styles/sidebar.css';
 
-const Sidebar = ({ isOpen, closeSidebar }) => {
-  const { user, logout } = useAuth();
+const Sidebar = () => {
+  // const { user } = useAuth(); // <-- RIMOSSO
+  // const isAdmin = user?.signInUserSession?.idToken?.payload['cognito:groups']?.includes('admin'); // <-- RIMOSSO
 
   return (
-    <aside className={`sidebar ${isOpen ? 'is-open' : ''}`}>
-      <div>
-        <div className="sidebar-header">
-          <h2>Menu</h2>
-          <button className="sidebar-close" onClick={closeSidebar}>&times;</button>
-        </div>
-        <ul className="sidebar-nav-links" onClick={closeSidebar}>
+    <aside className="sidebar">
+      <nav className="sidebar-nav">
+        <ul>
           <li>
-            <NavLink to="/" end>Dashboard</NavLink>
+            <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>
+              <FaTachometerAlt />
+              <span>Dashboard</span>
+            </NavLink>
           </li>
           <li>
-            <NavLink to="/hosts">Hosts</NavLink>
+            <NavLink to="/schedule" className={({ isActive }) => isActive ? 'active' : ''}>
+              <FaClock />
+              <span>Pianifica Downtime</span>
+            </NavLink>
           </li>
           <li>
-            <NavLink to="/schedule">Schedule Downtime</NavLink>
+            <NavLink to="/existing" className={({ isActive }) => isActive ? 'active' : ''}>
+              <FaList />
+              <span>Downtime Esistenti</span>
+            </NavLink>
           </li>
+          {/* Per ora, lasciamo questo link visibile a tutti.
+              Per ripristinare la logica 'isAdmin', dovrai passare l'oggetto 'user'
+              da App.js -> Layout.jsx -> Sidebar.jsx
+          */}
+          {/* {isAdmin && ( */}
+            <li>
+              <NavLink to="/hosts" className={({ isActive }) => isActive ? 'active' : ''}>
+                <FaHdd />
+                <span>Configurazione Host</span>
+              </NavLink>
+            </li>
+          {/* )} */}
           <li>
-            <NavLink to="/downtimes">View Downtimes</NavLink>
-          </li>
-          <li>
-            <NavLink to="/settings">Settings</NavLink>
+            <NavLink to="/settings" className={({ isActive }) => isActive ? 'active' : ''}>
+              <FaCog />
+              <span>Impostazioni</span>
+            </NavLink>
           </li>
         </ul>
-      </div>
-      <div className="sidebar-footer">
-        <div className="user-info">
-          <span className="user-email">{user?.attributes?.email || user?.username}</span>
-        </div>
-        <button onClick={logout} className="signout-button">
-          Sign Out
-        </button>
-      </div>
+      </nav>
     </aside>
   );
 };

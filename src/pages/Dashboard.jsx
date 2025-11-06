@@ -1,100 +1,145 @@
-import React from 'react';
-import { useApi } from '../hooks/useApi';
-import { useNavigate } from 'react-router-dom'; // Importiamo useNavigate
+import React, { useMemo } from 'react'; // 1. Importa useMemo
+import { FaClock, FaCheckCircle, FaExclamationTriangle, FaList } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 import Loader from '../components/Loader';
-// Rimosso import TestApi
+import { useApi } from '../hooks/useApi';
 import '../styles/dashboard.css';
 
-// Componente riutilizzabile per le card
-const StatCard = ({ title, value, loading, error, icon }) => {
-    let content;
+const Dashboard = () => {
+  // 2. CORRETTO: Creiamo un oggetto stabile per le opzioni
+  const statsOptions = useMemo(() => ({}), []);
+  const recentOptions = useMemo(() => ({}), []);
+
+  // 3. CORRETTO: Passiamo l'oggetto stabile
+  const { data: stats, loading: statsLoading, error: statsError } = useApi('/dashboard/stats', statsOptions, 'stats');
+  const { data: recent, loading: recentLoading, error: recentError } = useApi('/downtimes?limit=5', recentOptions, 'recent_downtimes');
+
+  const StatCard = ({ icon, title, value, status, loading }) => {
     if (loading) {
-        content = <div className="stat-value-loading"></div>;
-    } else if (error) {
-        content = <span className="stat-error">Errore</span>;
-    } else {
-        content = value;
+      return (
+        <div className="dashboard-card stat-card loading">
+          <h3>{title}</h3>
+          <div className="stat-value">...</div>
+        </div>
+      );
+    }
+    return (
+      <div className={`dashboard-card stat-card ${status || ''}`}>
+        {icon}
+        <h3>{title}</h3>
+        <p className="stat-value">{value}</p>
+      </div>
+    );
+  };
+
+  const RecentDowntimes = ({ downtimes, loading, error }) => {
+    if (loading) {
+      return (
+        <div className="dashboard-card">
+          <h3>Ultimi Downtime Pianificati</h3>
+          <Loader message="Caricamento downtimes recenti..." />
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="dashboard-card error-card">
+          <h3>Ultimi Downtime Pianificati</h3>
+          <p className="error-message">Errore nel caricamento: {error.message}</p>
+        </div>
+      );
+    }
+
+    if (!downtimes || downtimes.length === 0) {
+      return (
+        <div className="dashboard-card">
+          <h3>Ultimi Downtime Pianificati</h3>
+          <p>Nessun downtime recente trovato.</p>
+        </div>
+      );
     }
 
     return (
-        <div className="stat-card">
-            <div className="stat-icon">{icon}</div>
-            <div className="stat-info">
-                <div className="stat-title">{title}</div>
-                <div className="stat-value">{content}</div>
-            </div>
-        </div>
+      <div className="dashboard-card">
+        <h3>Ultimi Downtime Pianificati</h3>
+        <ul className="recent-downtimes-list">
+          {downtimes.map((dt) => (
+            <li key={dt.downtime_id}>
+              <span className="host-name">{dt.host_name}</span>
+              <span className="client-name">({dt.client_name || 'N/D'})</span>
+              <span className="downtime-comment">{dt.comment}</span>
+              <span className="downtime-author"> - {dt.author}</span>
+            </li>
+          ))}
+        </ul>
+        <Link to="/existing" className="view-all-link">
+          Vedi tutti
+        </Link>
+      </div>
     );
-};
+  };
 
-// Componente per le Azioni Rapide
-const QuickActions = () => {
-    const navigate = useNavigate();
-
-    return (
-        <div className="stat-card action-card">
-             <div className="stat-icon">⚡</div>
-             <div className="stat-info">
-                <div className="stat-title">AZIONI RAPIDE</div>
-                <div className="action-buttons-container">
-                    <button 
-                        className="action-button primary"
-                        onClick={() => navigate('/schedule')}
-                    >
-                        📅 Programma
-                    </button>
-                    <button 
-                        className="action-button secondary"
-                        onClick={() => navigate('/existing')}
-                    >
-                        🔍 Vedi Esistenti
-                    </button>
-                </div>
-            </div>
+  return (
+    <div className="dashboard-page">
+      <h2>Dashboard</h2>
+      
+      {statsError && (
+        <div className="dashboard-card error-card">
+          <h3>Errore Statistiche</h3>
+          <p className="error-message">{statsError.message}</p>
         </div>
-    );
-};
+      )}
 
+      <div className="stats-grid">
+        <StatCard
+          icon={<FaClock />}
+          title="Downtime Attivi"
+          value={stats?.active_downtimes ?? 'N/D'}
+          status="info"
+          loading={statsLoading}
+        />
+        <StatCard
+          icon={<FaCheckCircle />}
+          title="Downtime Pianificati (Oggi)"
+          value={stats?.scheduled_today ?? 'N/D'}
+          status="success"
+          loading={statsLoading}
+        />
+        <StatCard
+          icon={<FaExclamationTriangle />}
+          title="Host senza Cliente"
+          value={stats?.unassigned_hosts ?? 'N/D'}
+          status={stats?.unassigned_hosts > 0 ? 'warning' : 'success'}
+          loading={statsLoading}
+        />
+        <StatCard
+          icon={<FaList />}
+          title="Totale Downtime (Ricorrenti)"
+          value={stats?.total_recurring ?? 'N/D'}
+          status="info"
+          loading={statsLoading}
+        />
+      </div>
 
-const Dashboard = () => {
-    // Chiamata 1: per Host Totali (da /stats)
-    const { data: statsData, loading: statsLoading, error: statsError } = useApi('stats');
-    
-    // Chiamata 2: per Clienti Totali (da /clients)
-    const { data: clientsData, loading: clientsLoading, error: clientsError } = useApi('clients');
+      <div className="quick-links">
+        <Link to="/schedule" className="quick-link-button">
+          <FaClock />
+          <span>Pianifica Nuovo Downtime</span>
+        </Link>
+        <Link to="/hosts" className="quick-link-button">
+          <FaList />
+          <span>Gestisci Host</span>
+        </Link>
+      </div>
 
-    const totalHosts = statsData?.totalHosts;
-    const totalClients = clientsData?.length; 
-
-    return (
-        <div className="dashboard-container">
-            <h1>📊 Dashboard Principale</h1>
-            <p className="dashboard-subtitle">Panoramica dello stato del sistema e dei dati di Checkmk.</p>
-            
-            <div className="stats-container three-cards">
-                <StatCard 
-                    title="Host Totali"
-                    value={totalHosts}
-                    loading={statsLoading}
-                    error={statsError}
-                    icon="🖥️"
-                />
-                
-                <StatCard 
-                    title="Clienti Totali"
-                    value={totalClients}
-                    loading={clientsLoading}
-                    error={clientsError}
-                    icon="🏢"
-                />
-
-                <QuickActions />
-            </div>
-
-            {/* --- SEZIONE API TEST RIMOSSA --- */}
-            
-        </div>
-    );
+      <RecentDowntimes 
+        downtimes={recent} 
+        loading={recentLoading} 
+        error={recentError} 
+      />
+    </div>
+  );
 };
 
 export default Dashboard;

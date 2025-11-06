@@ -1,51 +1,82 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './auth/AuthProvider';
-import { ApiCacheProvider } from './contexts/ApiCacheContext';
-import ProtectedRoute from './auth/ProtectedRoute';
-import Layout from './components/Layout';
-import Login from './pages/Login';
-import NewPassword from './pages/NewPassword';
-import MFASetup from './pages/MFASetup';
-import MFAVerification from './pages/MFAVerification';
-import Dashboard from './pages/Dashboard';
-import HostConfig from './pages/HostConfig';
-import DowntimeSchedule from './pages/DowntimeSchedule';
-import ExistingDowntimes from './pages/ExistingDowntimes';
-import Settings from './pages/Settings';
-import TestApi from './components/TestApi';
-import './styles/global.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-function App() {
+// 1. Importa i componenti Authenticator e gli stili
+import { Authenticator, useAuthenticator, View, Image } from '@aws-amplify/ui-react';
+import '@aws-amplify/ui-react/styles.css';
+
+// 2. *** IMPORTA IL PROVIDER MANCANTE ***
+import { ApiCacheProvider } from './contexts/ApiCacheContext'; //
+
+// Importa i tuoi componenti dell'app
+import Layout from './components/Layout'; //
+import Dashboard from './pages/Dashboard'; //
+import DowntimeSchedule from './pages/DowntimeSchedule'; //
+import ExistingDowntimes from './pages/ExistingDowntimes'; //
+import HostConfig from './pages/HostConfig'; //
+import Settings from './pages/Settings'; //
+
+// Importa stili e logo
+import './styles/global.css'; //
+import logo from './logo.svg'; //
+
+/**
+ * Questo componente contiene la tua app protetta.
+ * Verrà renderizzato solo DOPO che l'utente ha effettuato l'accesso.
+ */
+function AppContent() {
+  const { user, signOut } = useAuthenticator((context) => [context.user]);
+
   return (
-    <AuthProvider>
-      <ApiCacheProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/new-password" element={<NewPassword />} />
-            <Route path="/mfa-setup" element={<MFASetup />} />
-            <Route path="/mfa-verification" element={<MFAVerification />} />
-            <Route path="/test-api" element={<TestApi />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Dashboard />} />
-              <Route path="hosts" element={<HostConfig />} />
-              <Route path="schedule" element={<DowntimeSchedule />} />
-              <Route path="downtimes" element={<ExistingDowntimes />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
-      </ApiCacheProvider>
-    </AuthProvider>
+    // 3. *** AVVOLGI IL ROUTER CON IL PROVIDER ***
+    // Ora tutti i componenti (Dashboard, ecc.) possono usare useApiCache()
+    <ApiCacheProvider>
+      <Router>
+        <Routes>
+          <Route 
+            path="/" 
+            element={<Layout user={user} signOut={signOut} />}
+          >
+            <Route index element={<Dashboard />} /> 
+            <Route path="schedule" element={<DowntimeSchedule />} />
+            <Route path="existing" element={<ExistingDowntimes />} />
+            <Route path="hosts" element={<HostConfig />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
+          <Route path="*" element={<div>404 - Pagina non trovata</div>} />
+        </Routes>
+      </Router>
+    </ApiCacheProvider>
+  );
+}
+
+/**
+ * Questo è il componente principale dell'App.
+ * Avvolge l'intera applicazione nell'Authenticator.
+ */
+function App() {
+  
+  const components = {
+    Header: () => (
+      <View textAlign="center" padding="medium">
+        <Image 
+          alt="Logo" 
+          src={logo} 
+          height="100px" 
+        />
+        <h3>Checkmk Downtime Scheduler</h3>
+      </View>
+    ),
+  };
+
+  return (
+    <Authenticator 
+      loginMechanisms={['username']} 
+      hideSignUp={true} 
+      components={components}
+    >
+      <AppContent />
+    </Authenticator>
   );
 }
 

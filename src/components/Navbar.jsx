@@ -1,18 +1,36 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { FaBell, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
 import '../styles/navbar.css';
 
-const Navbar = ({ toggleSidebar }) => {
+// 1. Ricevi 'user' e 'signOut' come props
+const Navbar = ({ user, signOut }) => {
+  
+  // 2. Estrai lo username dall'oggetto user
+  const username = user?.username || 'Utente';
+
   return (
     <nav className="navbar">
-      <button className="sidebar-toggle" onClick={toggleSidebar}>
-        &#9776; {/* Hamburger icon */}
-      </button>
-      <div className="navbar-brand">
-        <Link to="/">Checkmk Downtime</Link>
+      <div className="navbar-left">
+        <h1 className="navbar-title">Checkmk Downtime Scheduler</h1>
       </div>
-      {/* User info and sign out are now in the sidebar */}
-      <div className="navbar-user-placeholder"></div>
+      <div className="navbar-right">
+        <button className="navbar-icon-button">
+          <FaBell />
+        </button>
+        <div className="user-info">
+          <FaUserCircle className="user-icon" />
+          {/* 3. Mostra lo username */}
+          <span className="user-name">{username}</span>
+        </div>
+        {/* 4. Aggiungi il pulsante Logout che chiama la funzione signOut */}
+        <button 
+          className="navbar-icon-button logout-button" 
+          onClick={signOut} 
+          title="Esci"
+        >
+          <FaSignOutAlt />
+        </button>
+      </div>
     </nav>
   );
 };
