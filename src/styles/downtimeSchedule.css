@@ -6,6 +6,12 @@
   background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  
+  /* FIX: Aggiunge 100px di spazio solo in fondo.
+    Questo impedisce al bottone "Programma" e al campo "Commento"
+    di finire sotto al bottone "+" fluttuante sui telefoni.
+  */
+  padding-bottom: 100px;
 }
 
 .downtime-container h1 {
@@ -248,3 +254,49 @@
 .host-tag button:hover {
   color: #d9534f; /* Rosso */
 }
+
+/* ===================================
+   FIX RESPONSIVE PER DISPOSITIVI MOBILI
+   =================================== */
+   @media (max-width: 600px) {
+
+    /* 1. Fa sì che il contenitore principale usi tutto lo spazio */
+    .downtime-container {
+      margin: 10px;
+      padding: 15px;
+    }
+  
+    /* 2. Impila il gruppo "Aggiungi Host" (dropdown + bottone) */
+    .add-host-group {
+      flex-direction: column;
+      align-items: stretch; /* Fa sì che gli elementi riempiano la larghezza */
+      gap: 15px;
+    }
+  
+    /* 3. Impila i campi "Ora Inizio" e "Ora Fine" */
+    .time-group {
+      flex-direction: column;
+      gap: 20px; /* Mantiene lo stesso gap */
+    }
+  
+    /* 4. Impila i campi "Durata" (numero + select) */
+    .duration-group {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  
+    .duration-value {
+      width: 100%; /* Fa sì che il campo numero prenda tutta la larghezza */
+    }
+  
+    /* 5. Migliora la spaziatura dei bottoni dei giorni */
+    .weekday-picker {
+      flex-wrap: wrap; /* Permette ai bottoni di andare a capo */
+      gap: 10px;
+    }
+  
+    .day-button {
+      /* Fa sì che 3 bottoni stiano su una riga (circa) */
+      flex-basis: 30%; 
+    }
+  }

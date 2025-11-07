@@ -156,3 +156,53 @@
   padding-bottom: 10px;
   margin-bottom: 15px;
 }
+
+
+/* ===================================
+   FIX RESPONSIVE PER DISPOSITIVI MOBILI
+   =================================== */
+   @media (max-width: 600px) {
+
+    /* 1. Riduce i margini e il padding del contenitore principale */
+    .dashboard-container {
+      margin: 10px;
+      padding: 15px;
+    }
+  
+    /* 2. Rimpicciolisce i titoli per schermi piccoli */
+    .dashboard-container h1 {
+      font-size: 1.8rem;
+    }
+  
+    .dashboard-subtitle {
+      font-size: 1.0rem;
+      margin-bottom: 20px;
+    }
+  
+    /* 3. Riduce padding e dimensioni font nelle card */
+    .stat-card {
+      padding: 20px;
+      min-height: 0; /* Rimuove l'altezza minima */
+    }
+    
+    .stat-icon {
+       font-size: 2.0rem; 
+       padding: 12px;
+    }
+    
+    .stat-value {
+       font-size: 1.9rem;
+    }
+  
+    /* 4. Impila i bottoni "Programma" e "Vedi Esistenti" 
+       all'interno della card "AZIONI RAPIDE". */
+    .action-buttons-container {
+      flex-direction: column; /* Impila i bottoni verticalmente */
+      align-items: stretch; /* Li allunga a piena larghezza */
+      gap: 12px; /* Aggiunge spazio tra i bottoni impilati */
+    }
+  
+    .action-button {
+      padding: 12px; /* Aumenta un po' il padding per un tocco più facile */
+    }
+  }
