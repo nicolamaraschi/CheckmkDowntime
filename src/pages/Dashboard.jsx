@@ -45,7 +45,7 @@ const QuickActions = () => {
                     </button>
                     <button 
                         className="action-button secondary"
-                        onClick={() => navigate('/existing')}
+                        onClick={() => navigate('/downtimes')}
                     >
                         🔍 Vedi Esistenti
                     </button>

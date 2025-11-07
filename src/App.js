@@ -12,6 +12,9 @@ import ExistingDowntimes from './pages/ExistingDowntimes';
 import Settings from './pages/Settings';
 import './styles/global.css';
 
+// 1. IMPORTA IL PROVIDER MANCANTE
+import { AuthProvider } from './auth/AuthProvider';
+
 // Configurazione Cognito
 Amplify.configure({
   Auth: {
@@ -27,20 +30,27 @@ function App() {
   return (
     <Authenticator>
       {({ signOut, user }) => (
-        <ApiCacheProvider user={user} signOut={signOut}>
-          <Router>
-            <Routes>
-              <Route path="/" element={<Layout user={user} signOut={signOut} />}>
-                <Route index element={<Dashboard />} />
-                <Route path="hosts" element={<HostConfig />} />
-                <Route path="schedule" element={<DowntimeSchedule />} />
-                <Route path="downtimes" element={<ExistingDowntimes />} />
-                <Route path="settings" element={<Settings />} />
-              </Route>
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Router>
-        </ApiCacheProvider>
+        // 2. AVVOLGI L'APPLICAZIONE CON AUTHPROVIDER
+        // Dato che AuthProvider (da /auth/AuthProvider.jsx) gestisce 
+        // lo stato internamente, puoi probabilmente posizionarlo 
+        // all'interno del blocco Authenticator.
+        <AuthProvider>
+          <ApiCacheProvider user={user} signOut={signOut}>
+            <Router>
+              <Routes>
+                <Route path="/" element={<Layout user={user} signOut={signOut} />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="hosts" element={<HostConfig />} />
+                  {/* Ora DowntimeSchedule troverà il contesto di cui ha bisogno */}
+                  <Route path="schedule" element={<DowntimeSchedule />} />
+                  <Route path="downtimes" element={<ExistingDowntimes />} />
+                  <Route path="settings" element={<Settings />} />
+                </Route>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Router>
+          </ApiCacheProvider>
+        </AuthProvider>
       )}
     </Authenticator>
   );
