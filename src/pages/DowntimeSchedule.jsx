@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import ClientSelector from '../components/ClientSelector';
 import HostSelector from '../components/HostSelector';
-import WeekdayPicker from '../components/WeekdayPicker';
+// import WeekdayPicker from '../components/WeekdayPicker'; // RIMOSSO
 import TimePicker from '../components/TimePicker';
 import '../styles/downtimeSchedule.css';
 import Loader from '../components/Loader';
@@ -14,7 +14,7 @@ const DowntimeSchedule = () => {
     const [selectedHost, setSelectedHost] = useState(''); // Host corrente nel dropdown
     const [hostList, setHostList] = useState([]);         // Lista di host da programmare
 
-    const [weekdays, setWeekdays] = useState([]);
+    // const [weekdays, setWeekdays] = useState([]); // RIMOSSO
     const [startTime, setStartTime] = useState('00:00');
     const [endTime, setEndTime] = useState('01:00');
     
@@ -58,11 +58,7 @@ const DowntimeSchedule = () => {
             return;
         }
         
-        if (weekdays.length === 0) {
-            if (!window.confirm("Non hai selezionato giorni feriali. Verrà impostato il downtime SOLO per Sabato e Domenica. Continuare?")) {
-                return;
-            }
-        }
+        // RIMOSSO controllo weekdays.length
 
         if (startTime === endTime) {
              setError("L'ora di inizio e fine non possono coincidere.");
@@ -88,7 +84,7 @@ const DowntimeSchedule = () => {
         // --- MODIFICA 3: Invia la lista di host ---
         const payload = {
             hosts: hostList, // Invia la lista
-            giorni: weekdays,
+            giorni: [], // Vuoto, il backend ora lo ignora e applica a tutti i giorni
             startTime: startTime,
             endTime: endTime,
             ripeti: repeatDaysForBackend, 
@@ -121,7 +117,7 @@ const DowntimeSchedule = () => {
                 setSelectedClient('');
                 setSelectedHost('');
                 setHostList([]); // Resetta la lista
-                setWeekdays([]);
+                // setWeekdays([]); // RIMOSSO
                 setDurationValue(1);
                 setDurationUnit('weeks');
                 setCommento('');
@@ -215,14 +211,14 @@ const DowntimeSchedule = () => {
 
                 <div className="time-group">
                     <div className="form-group">
-                        <label className="required-field">Ora Inizio Feriali (HH:MM)</label>
+                        <label className="required-field">Ora Inizio (Tutti i giorni)</label>
                         <TimePicker 
                             value={startTime} 
                             onChange={setStartTime} 
                         />
                     </div>
                     <div className="form-group">
-                        <label className="required-field">Ora Fine Feriali (HH:MM)</label>
+                        <label className="required-field">Ora Fine (Tutti i giorni)</label>
                         <TimePicker 
                             value={endTime} 
                             onChange={setEndTime} 
@@ -230,14 +226,15 @@ const DowntimeSchedule = () => {
                     </div>
                 </div>
 
+                {/* RIMOSSO WeekdayPicker */}
                 <div className="form-group">
-                    <label>Giorni feriali (Opzionale)</label>
-                    <WeekdayPicker value={weekdays} onChange={setWeekdays} />
                     <span className="info-badge" style={{
                         marginTop: '10px', backgroundColor: '#e6f7ff', color: '#0056b3', 
-                        textAlign: 'left', display: 'block', padding: '10px'
+                        textAlign: 'left', display: 'block', padding: '15px', borderRadius: '8px', border: '1px solid #b8daff'
                     }}>
-                        ℹ️ **Nota:** Il downtime per **Sabato e Domenica** (00:00 - 23:59) viene aggiunto **automaticamente**.
+                        ℹ️ **Logica di Programmazione:**<br/>
+                        1. L'orario selezionato (es. {startTime} - {endTime}) verrà applicato **tutti i giorni** (Lun-Dom).<br/>
+                        2. Inoltre, verrà aggiunto **automaticamente** un downtime completo per il Weekend (**Sabato 00:00 - Domenica 23:59**).
                     </span>
                 </div>
 
@@ -272,7 +269,7 @@ const DowntimeSchedule = () => {
                         type="text" 
                         value={commento} 
                         onChange={(e) => setCommento(e.target.value)}
-                        placeholder="Es. Spegnimento weekend e manutenzione"
+                        placeholder="Es. Spegnimento notturno e weekend"
                         maxLength={200}
                     />
                 </div>

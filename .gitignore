@@ -25,4 +25,19 @@ yarn-error.log*
 # environment variables
 .env
 backend/.env
+*.env
+*variabili di ambiente*.txt
 
+# Python cache
+__pycache__/
+backend/app/__pycache__/
+
+# React / JS API keys and configs
+src/**/api.js
+src/**/aws-config.js
+src/**/cognito.js
+src/**/cognito.js.old
+src/**/aws-*.js
+
+# Mac/Linux build scripts you don't want to commit
+build-

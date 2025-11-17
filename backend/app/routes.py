@@ -1,8 +1,8 @@
 from starlette.responses import Response
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from typing import List, Dict, Any, Optional
-import requests  # Lo manteniamo se serve altrove, ma non per le chiamate API
-import httpx     # Importiamo httpx
+import requests
+import httpx
 import asyncio
 import os
 import logging
@@ -26,18 +26,12 @@ def get_checkmk_config():
     }
     return config
 
-# Metti questa funzione helper vicino all'inizio del file, dopo get_checkmk_config()
-
 async def get_all_hosts_map(config: dict, headers: dict) -> Dict[str, str]:
-    """
-    Recupera tutti gli host e crea una mappa {host_name: folder}.
-    Questa funzione è asincrona e riutilizzabile.
-    """
     api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
     logger.info("[Helper] Fetching host map...")
     
     try:
-        async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
+        async with httpx.AsyncClient(headers=headers, timeout=30.0, verify=False) as session:
             resp = await session.get(
                 f"{api_url}/domain-types/host_config/collections/all",
                 params={"effective_attributes": False}
@@ -74,8 +68,7 @@ async def test_checkmk_connection() -> Dict[str, str]:
         
         start_time = time.time()
         
-        # --- MODIFICA: Usiamo httpx asincrono ---
-        async with httpx.AsyncClient(headers=headers, timeout=10.0) as session:
+        async with httpx.AsyncClient(headers=headers, timeout=10.0, verify=False) as session:
             resp = await session.get(f"{api_url}/version")
         
         response_time = time.time() - start_time
@@ -147,8 +140,7 @@ async def get_hosts(request: Request, token: str = Depends(get_current_user)):
     try:
         logger.info(f"[{request_id}] Connecting to Checkmk API (async): {api_url}")
         
-        # --- MODIFICA: Usiamo httpx asincrono ---
-        async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
+        async with httpx.AsyncClient(headers=headers, timeout=30.0, verify=False) as session:
             start_time = time.time()
             resp = await session.get(
                 f"{api_url}/domain-types/host_config/collections/all",
@@ -158,7 +150,6 @@ async def get_hosts(request: Request, token: str = Depends(get_current_user)):
         
         logger.info(f"[{request_id}] API response received in {response_time:.2f}s with status: {resp.status_code}")
         
-        # Aggiungiamo il controllo dello stato
         resp.raise_for_status()
         
         host_list = []
@@ -173,7 +164,6 @@ async def get_hosts(request: Request, token: str = Depends(get_current_user)):
         logger.info(f"[{request_id}] Successfully retrieved {len(host_list)} hosts")
         return {"hosts": host_list}
 
-    # Gestione errori migliorata
     except httpx.HTTPStatusError as e:
         logger.error(f"[{request_id}] API error: {e.response.status_code} - {e.response.text}")
         raise HTTPException(
@@ -205,8 +195,7 @@ async def get_clients(request: Request, token: str = Depends(get_current_user)):
     try:
         logger.info(f"[{request_id}] Connecting to Checkmk API (async): {api_url}")
 
-        # --- MODIFICA: Usiamo httpx asincrono ---
-        async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
+        async with httpx.AsyncClient(headers=headers, timeout=30.0, verify=False) as session:
             start_time = time.time()
             resp = await session.get(
                 f"{api_url}/domain-types/host_config/collections/all",
@@ -216,7 +205,6 @@ async def get_clients(request: Request, token: str = Depends(get_current_user)):
 
         logger.info(f"[{request_id}] API response received in {response_time:.2f}s with status: {resp.status_code}")
         
-        # Aggiungiamo il controllo dello stato
         resp.raise_for_status()
 
         data = resp.json()
@@ -229,7 +217,6 @@ async def get_clients(request: Request, token: str = Depends(get_current_user)):
         logger.info(f"[{request_id}] Successfully retrieved {len(client_list)} unique clients")
         return {"clients": client_list}
         
-    # Gestione errori migliorata
     except httpx.HTTPStatusError as e:
         logger.error(f"[{request_id}] API error: {e.response.status_code} - {e.response.text}")
         raise HTTPException(
@@ -261,8 +248,7 @@ async def get_stats(request: Request, token: str = Depends(get_current_user)):
     try:
         logger.info(f"[{request_id}] Connecting to Checkmk API (async): {api_url}")
         
-        # --- MODIFICA: Usiamo httpx asincrono ---
-        async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
+        async with httpx.AsyncClient(headers=headers, timeout=30.0, verify=False) as session:
             logger.info(f"[{request_id}] Fetching hosts data...")
             start_time = time.time()
             hosts_resp = await session.get(
@@ -273,7 +259,6 @@ async def get_stats(request: Request, token: str = Depends(get_current_user)):
         
         logger.info(f"[{request_id}] Hosts data received in {hosts_time:.2f}s with status: {hosts_resp.status_code}")
         
-        # Aggiungiamo il controllo dello stato
         hosts_resp.raise_for_status()
         
         hosts_data = hosts_resp.json()
@@ -286,7 +271,6 @@ async def get_stats(request: Request, token: str = Depends(get_current_user)):
             "activeDowntimes": 0
         }
     
-    # Gestione errori migliorata
     except httpx.HTTPStatusError as e:
         error_msg = f"Hosts API error: {e.response.status_code} - {e.response.text}"
         logger.error(f"[{request_id}] API errors: {error_msg}")
@@ -303,13 +287,12 @@ async def get_stats(request: Request, token: str = Depends(get_current_user)):
             detail=error_msg
         )
 
-# Questa è la tua funzione get_downtimes MODIFICATA
 @router.get("/downtimes")
 async def get_downtimes(
     request: Request, 
     token: str = Depends(get_current_user),
-    host: str = None,      # Parametro per host singolo
-    cliente: str = None  # NUOVO parametro per cliente/folder
+    host: str = None,
+    cliente: str = None
 ):
     request_id = f"req-{int(time.time())}"
     logger.info(f"[{request_id}] GET /downtimes - host={host}, cliente={cliente}")
@@ -325,19 +308,15 @@ async def get_downtimes(
     try:
         all_downtimes = []
         
-        # Timeout aumentato a 300 secondi (5 minuti)
-        async with httpx.AsyncClient(headers=headers, timeout=300.0) as session:
+        async with httpx.AsyncClient(headers=headers, timeout=300.0, verify=False) as session:
             
             if cliente:
-                # --- LOGICA PER CLIENTE ---
                 logger.info(f"[{request_id}] Filtering by cliente: {cliente}")
                 
-                # 1. Otteniamo la mappa di tutti gli host
                 host_map = await get_all_hosts_map(config, headers)
                 if not host_map:
                     raise HTTPException(status_code=500, detail="Could not fetch host list to filter by client")
                 
-                # 2. Filtriamo gli host che appartengono a questo cliente
                 hosts_in_cliente = [host_name for host_name, folder in host_map.items() if folder == cliente]
                 
                 if not hosts_in_cliente:
@@ -346,42 +325,39 @@ async def get_downtimes(
                 
                 logger.info(f"[{request_id}] Found {len(hosts_in_cliente)} hosts for cliente. Fetching downtimes in parallel...")
                 
-                # 3. Creiamo task paralleli per ogni host
-                tasks = []
-                for host_name in hosts_in_cliente:
-                    
-                    # --- MODIFICA CHIAVE ---
-                    # NON filtriamo più per site_id! Lasciamo che il master cerchi ovunque.
-                    query_params = {"host_name": host_name}
-                    
-                    tasks.append(session.get(
-                        f"{api_url}/domain-types/downtime/collections/all",
-                        params=query_params
-                    ))
+                MAX_CONCURRENT_REQUESTS = 20
+                semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
                 
-                # 4. Eseguiamo tutte le chiamate
+                tasks = []
+
+                async def get_with_semaphore(host_name):
+                    async with semaphore:
+                        query_params = {"host_name": host_name}
+                        logger.debug(f"[{request_id}] Fetching downtime for {host_name}")
+                        return await session.get(
+                            f"{api_url}/domain-types/downtime/collections/all",
+                            params=query_params
+                        )
+
+                for host_name in hosts_in_cliente:
+                    tasks.append(get_with_semaphore(host_name))
+                
+                logger.info(f"[{request_id}] Executing {len(tasks)} GET requests (limited to {MAX_CONCURRENT_REQUESTS} at a time)...")
                 start_time = time.time()
                 responses = await asyncio.gather(*tasks, return_exceptions=True)
                 response_time = time.time() - start_time
                 logger.info(f"[{request_id}] Parallel fetch completed in {response_time:.2f}s")
 
-                # 5. Raccogliamo i risultati
                 for resp in responses:
                     if isinstance(resp, httpx.Response) and resp.status_code == 200:
                         data = resp.json()
                         all_downtimes.extend(data.get('value', []))
                     elif isinstance(resp, Exception):
-                        # Log di errore migliorato
                         logger.error(f"[{request_id}] Parallel task failed: {type(resp).__name__} - {str(resp)}")
                 
             elif host:
-                # --- LOGICA PER HOST SINGOLO ---
                 logger.info(f"[{request_id}] Filtering by single host: {host}")
-                
-                # --- MODIFICA CHIAVE ---
-                # NON filtriamo più per site_id!
                 query_params = {"host_name": host}
-                
                 start_time = time.time()
                 resp = await session.get(
                     f"{api_url}/domain-types/downtime/collections/all",
@@ -415,7 +391,8 @@ async def get_downtimes(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg
         )
-
+        
+        
 @router.post("/schedule", response_model=DowntimeResponse)
 async def schedule_downtime(request: Request, req: DowntimeRequest, token: str = Depends(get_current_user)):
     request_id = f"req-{int(time.time())}"
@@ -425,9 +402,7 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
     api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
     
     try:
-        # --- INIZIO MODIFICHE ---
-        hosts = req.hosts # Lista di host dal payload
-        giorni_feriali = req.giorni
+        hosts = req.hosts 
         start_time_user = req.startTime
         end_time_user = req.endTime
         ripeti_val = req.ripeti
@@ -435,15 +410,11 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
         
         ripeti = 0
         if isinstance(ripeti_val, str):
-            if ripeti_val == "domenica":
-                ripeti = 30
-            elif ripeti_val == "weekend":
-                ripeti = 30
-            else:
-                ripeti = 0
+            if ripeti_val == "domenica": ripeti = 30
+            elif ripeti_val == "weekend": ripeti = 30
+            else: ripeti = 0
         else:
             ripeti = ripeti_val
-        # --- FINE MODIFICHE ---
 
         today = datetime.today()
         l_start = []
@@ -451,53 +422,59 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
         
         logger.info(f"[{request_id}] Calculating downtime dates for {ripeti+1} days")
         
-        # 1. Calcola i periodi di tempo UNA SOLA VOLTA
         for i in range(ripeti + 1):
             day = today + timedelta(days=i)
-            current_weekday = day.weekday() # 0=Lunedì, 5=Sabato, 6=Domenica
+            current_weekday = day.weekday()
             
-            process_day = False
+            start_dt_user = datetime.strptime(start_time_user, "%H:%M")
+            end_dt_user = datetime.strptime(end_time_user, "%H:%M")
             
-            if current_weekday in giorni_feriali:
-                logger.debug(f"[{request_id}] Applying user time for weekday: {day}")
-                start_dt = datetime.strptime(start_time_user, "%H:%M")
-                end_dt = datetime.strptime(end_time_user, "%H:%M")
-                process_day = True
-                
-            elif current_weekday == 5 or current_weekday == 6:
-                logger.debug(f"[{request_id}] Applying all-day logic for weekend: {day}")
-                start_dt = datetime.strptime("00:00", "%H:%M")
-                end_dt = datetime.strptime("23:59", "%H:%M")
-                process_day = True
+            day_start_user = datetime(day.year, day.month, day.day, start_dt_user.hour, start_dt_user.minute)
             
+            if end_dt_user.time() < start_dt_user.time():
+                day_end_user = datetime(day.year, day.month, day.day, end_dt_user.hour, end_dt_user.minute) + timedelta(days=1)
             else:
-                logger.debug(f"[{request_id}] Skipping weekday: {day}")
-                continue
+                day_end_user = datetime(day.year, day.month, day.day, end_dt_user.hour, end_dt_user.minute)
+            
+            l_start.append(f"{day_start_user.isoformat()}{calcolo_dst(day_start_user)}")
+            l_end.append(f"{day_end_user.isoformat()}{calcolo_dst(day_end_user)}")
 
-            if process_day:
-                day_start = datetime(day.year, day.month, day.day, start_dt.hour, start_dt.minute)
+            if current_weekday == 5: # Sabato
+                logger.debug(f"[{request_id}] Adding Full Weekend block for {day.date()}")
+                we_start = datetime(day.year, day.month, day.day, 0, 0)
+                sunday = day + timedelta(days=1)
+                we_end = datetime(sunday.year, sunday.month, sunday.day, 23, 59)
                 
-                if end_dt.time() < start_dt.time():
-                    day_end = datetime(day.year, day.month, day.day, end_dt.hour, end_dt.minute) + timedelta(days=1)
-                else:
-                    day_end = datetime(day.year, day.month, day.day, end_dt.hour, end_dt.minute)
-                
-                tz_start = calcolo_dst(day_start)
-                tz_end = calcolo_dst(day_end)
-                
-                formatted_start = f"{day_start.isoformat()}{tz_start}"
-                formatted_end = f"{day_end.isoformat()}{tz_end}"
-                
-                l_start.append(formatted_start)
-                l_end.append(formatted_end)
-        
+                l_start.append(f"{we_start.isoformat()}{calcolo_dst(we_start)}")
+                l_end.append(f"{we_end.isoformat()}{calcolo_dst(we_end)}")
+
         logger.info(f"[{request_id}] Generated {len(l_start)} downtime periods per host.")
         
         if len(l_start) == 0:
             logger.warning(f"[{request_id}] No downtime periods were generated!")
             return {"start_times": [], "end_times": [], "responses": []}
         
-        logger.info(f"[{request_id}] Connecting to Checkmk API: {api_url}")
+        all_payloads = []
+        for host in hosts:
+            for i in range(len(l_end)):
+                payload = {
+                    'start_time': l_start[i],
+                    'end_time': l_end[i],
+                    'recur': 'fixed',
+                    'duration': 0,
+                    'comment': commento,
+                    'downtime_type': 'host',
+                    'host_name': host,
+                }
+                all_payloads.append(payload)
+        
+        total_items = len(all_payloads)
+        responses_list = []
+
+        BATCH_SIZE = 4
+        DELAY_BETWEEN_BATCHES = 3.0
+        
+        logger.info(f"[{request_id}] Starting execution: {total_items} total requests. Batch size: {BATCH_SIZE}, Delay: {DELAY_BETWEEN_BATCHES}s")
         
         headers = {
             'Authorization': f"Bearer {config['user']} {config['password']}",
@@ -505,47 +482,42 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
             'Content-Type': 'application/json'
         }
 
-        tasks = []
-        total_tasks_count = len(hosts) * len(l_start)
-        logger.info(f"[{request_id}] Preparing {total_tasks_count} total downtime schedule requests ({len(hosts)} hosts * {len(l_start)} periods)...")
-
-        # 2. Crea i task per TUTTI gli host e TUTTI i periodi
-        async with httpx.AsyncClient(headers=headers, timeout=300.0) as session: # Timeout 5 min per batch
-            for host in hosts: # <-- LOOP SUGLI HOST
-                for i in range(len(l_end)): # Loop sui periodi
-                    payload = {
-                        'start_time': l_start[i],
-                        'end_time': l_end[i],
-                        'recur': 'fixed',
-                        'duration': 0,
-                        'comment': commento,
-                        'downtime_type': 'host',
-                        'host_name': host, # <-- Usa l'host corrente
-                    }
-                    
-                    tasks.append(post_downtime(
+        # Timeout generale del client: 300 secondi (5 minuti)
+        # Questo verrà usato da ogni richiesta .post()
+        async with httpx.AsyncClient(headers=headers, timeout=300.0, verify=False) as session:
+            for i in range(0, total_items, BATCH_SIZE):
+                batch_payloads = all_payloads[i : i + BATCH_SIZE]
+                batch_index_start = i + 1
+                batch_index_end = i + len(batch_payloads)
+                
+                logger.info(f"[{request_id}] Processing batch {batch_index_start}-{batch_index_end} / {total_items}...")
+                
+                batch_tasks = []
+                for idx, p in enumerate(batch_payloads):
+                    current_global_idx = i + idx
+                    batch_tasks.append(post_downtime(
                         session=session,
                         url=f"{api_url}/domain-types/downtime/collections/host",
-                        payload=payload,
+                        payload=p,
                         request_id=request_id,
-                        index=len(tasks), # Indice progressivo
-                        total=total_tasks_count
+                        index=current_global_idx,
+                        total=total_items
                     ))
-            
-            logger.info(f"[{request_id}] Sending {len(tasks)} requests in parallel...")
-            start_exec_time = time.time()
-            risposta = await asyncio.gather(*tasks)
-            exec_time = time.time() - start_exec_time
-            logger.info(f"[{request_id}] All requests completed in {exec_time:.2f} seconds")
+                
+                batch_results = await asyncio.gather(*batch_tasks)
+                responses_list.extend(batch_results)
+                
+                if (i + BATCH_SIZE) < total_items:
+                    logger.info(f"[{request_id}] Batch finished. Cooling down for {DELAY_BETWEEN_BATCHES}s...")
+                    await asyncio.sleep(DELAY_BETWEEN_BATCHES)
 
-        success_count = risposta.count("Done")
-        logger.info(f"[{request_id}] Schedule complete: {success_count}/{len(risposta)} requests succeeded")
+        success_count = responses_list.count("Done")
+        logger.info(f"[{request_id}] Schedule complete: {success_count}/{len(responses_list)} requests succeeded")
         
-        # Restituiamo solo gli start/end time del primo host (solo come info)
         return {
             "start_times": l_start,
             "end_times": l_end,
-            "responses": risposta
+            "responses": responses_list
         }
     except Exception as e:
         error_msg = f"Failed to schedule downtime: {str(e)}"
@@ -556,14 +528,24 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
             detail=error_msg
         )
 
-# Funzione helper per 'schedule_downtime' (necessaria)
+# Funzione helper per 'schedule_downtime'
 async def post_downtime(session: httpx.AsyncClient, url: str, payload: dict, request_id: str, index: int, total: int) -> str:
     try:
         logger.debug(f"[{request_id}] Sending request {index+1}/{total}: {payload.get('host_name')} from {payload.get('start_time')}")
-        resp = await session.post(url, json=payload)
-        resp.raise_for_status() # Lancia un errore se non è 2xx
+        
+        # --- MODIFICA CHIAVE ---
+        # Rimosso il timeout=15.0
+        # Ora userà il timeout del client (300 secondi)
+        resp = await session.post(url, json=payload) 
+        
+        resp.raise_for_status()
         logger.debug(f"[{request_id}] Request {index+1}/{total} successful")
         return "Done"
+    except httpx.TimeoutException:
+         # Questo scatterà solo dopo 300 secondi (5 minuti)
+         error_msg = f"Timeout (300s) request {index+1}/{total} for {payload.get('host_name')}"
+         logger.error(f"[{request_id}] {error_msg}")
+         return "Timeout"
     except httpx.HTTPStatusError as e:
         error_msg = f"Failed request {index+1}/{total}: {e.response.status_code} - {e.response.text}"
         logger.error(f"[{request_id}] {error_msg}")
@@ -572,60 +554,6 @@ async def post_downtime(session: httpx.AsyncClient, url: str, payload: dict, req
         error_msg = f"Failed request {index+1}/{total}: {str(e)}"
         logger.error(f"[{request_id}] {error_msg}")
         return error_msg
-    
-
-# --- NUOVO ENDPOINT PER ELIMINARE (MODIFICATO) ---
-@router.delete("/downtimes/{downtime_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_downtime(
-    request: Request, 
-    downtime_id: str,
-    site_id: str,  # <-- 1. ACCETTA IL site_id COME QUERY PARAMETER
-    token: str = Depends(get_current_user)
-):
-    request_id = f"req-{int(time.time())}"
-    logger.info(f"[{request_id}] DELETE /downtimes/{downtime_id} on site {site_id} - Request received")
-    
-    config = get_checkmk_config()
-    api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0"
-    
-    headers = {
-        'Authorization': f"Bearer {config['user']} {config['password']}",
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-    }
-    
-    # Questo è il payload che ci ha suggerito l'API
-    payload = {
-        "delete_type": "by_id",
-        "downtime_id": downtime_id,
-        "site_id": site_id  # <-- 2. INCLUDI IL site_id NEL PAYLOAD
-    }
-    
-    try:
-        async with httpx.AsyncClient(headers=headers, timeout=30.0) as session:
-            logger.info(f"[{request_id}] Sending delete request to Checkmk API: {payload}")
-            resp = await session.post(
-                f"{api_url}/domain-types/downtime/actions/delete/invoke",
-                json=payload
-            )
-            
-            resp.raise_for_status()
-            
-            logger.info(f"[{request_id}] Successfully deleted downtime {downtime_id} from site {site_id}")
-            return Response(status_code=status.HTTP_204_NO_CONTENT)
-            
-    except httpx.HTTPStatusError as e:
-        error_msg = f"API error deleting downtime: {e.response.status_code} - {e.response.text}"
-        logger.error(f"[{request_id}] {error_msg}")
-        raise HTTPException(status_code=e.response.status_code, detail=error_msg)
-    except Exception as e:
-        error_msg = f"Failed to delete downtime: {str(e)}"
-        logger.error(f"[{request_id}] {error_msg}")
-        logger.error(f"[{request_id}] {traceback.format_exc()}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=error_msg
-        )
 
 
 @router.post("/downtimes/delete-batch", response_model=BatchDeleteResponse)
@@ -642,7 +570,6 @@ async def delete_downtime_batch(
     logger.info(f"[{request_id}] POST /downtimes/delete-batch - Request to delete {len(downtimes_to_delete)} downtimes")
     
     config = get_checkmk_config()
-    # Usiamo l'API del sito master ('mkhrun') per la cancellazione
     api_url = f"https://{config['host']}/{config['site']}/check_mk/api/1.0/domain-types/downtime/actions/delete/invoke"
     headers = {
         'Authorization': f"Bearer {config['user']} {config['password']}",
@@ -650,27 +577,40 @@ async def delete_downtime_batch(
         'Content-Type': 'application/json'
     }
     
+    MAX_CONCURRENT_REQUESTS = 20
+    semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+    
     tasks = []
-    # Usiamo un timeout lungo per le operazioni di batch
-    async with httpx.AsyncClient(headers=headers, timeout=300.0) as session:
+
+    async def delete_with_semaphore(session, payload, dt):
+        async with semaphore:
+            logger.debug(f"[{request_id}] Sending delete for {dt.downtime_id} on {dt.site_id}")
+            try:
+                # --- MODIFICA CHIAVE ---
+                # Rimosso il timeout=15.0
+                # Ora userà il timeout del client (300 secondi)
+                return await session.post(api_url, json=payload)
+            except Exception as e:
+                logger.error(f"[{request_id}] Exception in delete_with_semaphore: {e}")
+                return e
+
+    # Timeout generale del client: 300 secondi (5 minuti)
+    async with httpx.AsyncClient(headers=headers, timeout=300.0, verify=False) as session:
         for dt in downtimes_to_delete:
             payload = {
                 "delete_type": "by_id",
                 "downtime_id": dt.downtime_id,
                 "site_id": dt.site_id
             }
-            # Creiamo un task per ogni chiamata POST
-            tasks.append(session.post(api_url, json=payload))
+            tasks.append(delete_with_semaphore(session, payload, dt))
         
-        logger.info(f"[{request_id}] Sending {len(tasks)} delete requests in parallel...")
-        # Eseguiamo tutte le cancellazioni contemporaneamente
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        logger.info(f"[{request_id}] Sending {len(tasks)} delete requests (limited to {MAX_CONCURRENT_REQUESTS} at a time)...")
+        results = await asyncio.gather(*tasks, return_exceptions=False)
     
     succeeded = 0
     failed = 0
     errors = []
     
-    # Contiamo i risultati
     for i, res in enumerate(results):
         dt = downtimes_to_delete[i]
         if isinstance(res, httpx.Response) and res.status_code == 204:
@@ -680,10 +620,12 @@ async def delete_downtime_batch(
             error_msg = f"Failed dt {dt.downtime_id} on site {dt.site_id}: "
             if isinstance(res, httpx.HTTPStatusError):
                 error_msg += f"{res.response.status_code} - {res.response.text}"
+            elif isinstance(res, httpx.TimeoutException):
+                error_msg += "Timeout (300s)" # Aggiornato messaggio
             elif isinstance(res, Exception):
                 error_msg += f"{type(res).__name__} - {str(res)}"
             else:
-                error_msg += f"Unknown error - Status {res.status_code}"
+                error_msg += f"Unknown error - Status {res.status_code if hasattr(res, 'status_code') else 'N/A'}"
             logger.error(f"[{request_id}] {error_msg}")
             errors.append(error_msg)
     
