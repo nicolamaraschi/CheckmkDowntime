@@ -1,59 +1,44 @@
+/* src/styles/layout.css */
 
 .app-container {
   display: flex;
-  flex-direction: column;
   height: 100vh;
-  position: relative; /* Needed for overlay positioning */
+  overflow: hidden;
+  background-color: var(--background-color);
 }
 
 .content-container {
-  display: flex;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
   overflow: hidden;
+}
+
+/* Desktop: Sidebar is fixed width on left */
+@media (min-width: 1024px) {
+  .content-container {
+    margin-left: 280px;
+    /* Match sidebar width */
+  }
 }
 
 .main-content {
   flex: 1;
-  padding: var(--spacing-lg);
   overflow-y: auto;
-  transition: filter 0.3s ease-in-out;
+  padding: var(--spacing-lg);
+  padding-bottom: var(--spacing-2xl);
+  /* Extra space at bottom */
 }
 
-.sidebar-overlay {
-  display: none; /* Hidden by default */
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1010; /* Below sidebar, above content */
-}
-
-/* Styles for when sidebar is open on smaller screens */
-.sidebar-is-open .sidebar-overlay {
-  display: block;
-}
-
-/* Responsive layout adjustments */
-@media (min-width: 992px) {
-  .sidebar {
-    position: static; /* Resets fixed positioning */
-    transform: translateX(0);
-  }
-}
-
-@media (max-width: 991.98px) {
-  .sidebar {
-    position: fixed;
-    left: -260px; /* Hidden by default, increased width slightly */
-    top: 0;
-    bottom: 0;
-    z-index: 1020;
-    transition: left 0.3s ease-in-out;
+/* Mobile adjustments */
+@media (max-width: 1023px) {
+  .content-container {
+    margin-left: 0 !important;
   }
 
-  .sidebar.is-open {
-    left: 0;
+  .main-content {
+    padding: var(--spacing-md);
   }
 }

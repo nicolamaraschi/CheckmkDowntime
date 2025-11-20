@@ -9,6 +9,8 @@ class DowntimeRequest(BaseModel):
     endTime: str
     ripeti: Union[int, str]
     commento: str
+    batch_size: Optional[int] = 3
+    delay: Optional[float] = 1.0
 
 class HostWithFolder(BaseModel):
     id: str

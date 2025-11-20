@@ -471,8 +471,9 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
         total_items = len(all_payloads)
         responses_list = []
 
-        BATCH_SIZE = 4
-        DELAY_BETWEEN_BATCHES = 3.0
+        # --- 3. CONFIGURAZIONE BATCH (DINAMICA) ---
+        BATCH_SIZE = req.batch_size if req.batch_size is not None else 3
+        DELAY_BETWEEN_BATCHES = req.delay if req.delay is not None else 1.0
         
         logger.info(f"[{request_id}] Starting execution: {total_items} total requests. Batch size: {BATCH_SIZE}, Delay: {DELAY_BETWEEN_BATCHES}s")
         
@@ -503,13 +504,13 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
                         index=current_global_idx,
                         total=total_items
                     ))
-                
+                # ... (loop dei task del batch) ...
                 batch_results = await asyncio.gather(*batch_tasks)
                 responses_list.extend(batch_results)
                 
                 if (i + BATCH_SIZE) < total_items:
                     logger.info(f"[{request_id}] Batch finished. Cooling down for {DELAY_BETWEEN_BATCHES}s...")
-                    await asyncio.sleep(DELAY_BETWEEN_BATCHES)
+                    await asyncio.sleep(DELAY_BETWEEN_BATCHES) # <-- Questa linea ora aspetterà 1 secondo
 
         success_count = responses_list.count("Done")
         logger.info(f"[{request_id}] Schedule complete: {success_count}/{len(responses_list)} requests succeeded")

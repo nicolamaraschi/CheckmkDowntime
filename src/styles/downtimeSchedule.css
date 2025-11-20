@@ -1,302 +1,267 @@
-/* Stili per il contenitore principale del form */
-.downtime-container {
-  padding: 20px;
-  max-width: 800px;
-  margin: 20px auto;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  
-  /* FIX: Aggiunge 100px di spazio solo in fondo.
-    Questo impedisce al bottone "Programma" e al campo "Commento"
-    di finire sotto al bottone "+" fluttuante sui telefoni.
-  */
-  padding-bottom: 100px;
-}
+/* src/styles/downtimeSchedule.css */
 
-.downtime-container h1 {
-  text-align: center;
-  color: #333;
-  margin-bottom: 25px;
-  border-bottom: 2px solid #f0f0f0;
-  padding-bottom: 15px;
-}
-
-/* Stili per il form */
 .downtime-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--spacing-xl);
 }
 
-/* Stili per i gruppi di form */
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.section-title {
+  font-size: var(--font-size-lg);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.form-row {
+  display: flex;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.form-group label {
-  font-weight: 600;
-  color: #555;
-  font-size: 0.9rem;
-}
-
-.form-group .required-field::after {
-  content: ' *';
-  color: #e63946;
-  font-weight: bold;
-}
-
-/* * --- ECCO LA MODIFICA ---
-* Stili per tutti gli input (testo, numero, ora) e select 
-*/
-.form-group input[type="text"],
-.form-group input[type="number"],
-.form-group input[type="time"],  /* <-- AGGIUNTO! */
-.form-group select {
-  padding: 10px 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Aspetto pulito */
-  transition: border-color 0.2s, box-shadow 0.2s;
-  background-color: #fff; /* Sfondo bianco */
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
-  outline: none;
-}
-
-/* Stili per i bottoni dei giorni della settimana (WeekdayPicker) */
-.weekday-picker {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.day-button {
+  gap: var(--spacing-xs);
   flex: 1;
-  padding: 12px 0;
-  font-size: 1rem;
-  font-weight: 600;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background-color: #f8f9fa;
-  color: #555;
-  cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  min-width: 200px;
 }
 
-.day-button:hover {
-  background-color: #e9ecef;
-  border-color: #adb5bd;
-}
-
-.day-button.selected {
-  background-color: #007bff;
-  border-color: #007bff;
-  color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
-}
-
-
-/* Stili per il gruppo ora (TimePicker) */
-.time-group {
-  display: flex;
-  gap: 20px;
-}
-
-.time-group .form-group {
+.flex-1 {
   flex: 1;
 }
 
-/* Stili per il gruppo durata */
-.duration-group {
-  display: flex;
-  gap: 10px;
-}
-
-.duration-value {
-  flex: 1;
-  width: 100px; /* Larghezza fissa per il numero */
-}
-
-.duration-unit {
+.flex-2 {
   flex: 2;
 }
 
-/* Badge informativi */
-.info-badge {
-  font-size: 0.85rem;
-  color: #6c757d;
-  margin-top: 5px;
-  background-color: #f8f9fa;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
-}
-
-/* Pulsante di submit e messaggi */
-.form-actions {
-  margin-top: 15px;
-}
-
-.submit-btn {
-  width: 100%;
-  padding: 14px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  background-color: #28a745; /* Verde */
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.submit-btn:hover {
-  background-color: #218838;
-}
-
-.submit-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-/* Messaggi di successo ed errore */
-.form-message {
-  padding: 12px 15px;
-  border-radius: 6px;
-  margin-top: 10px;
+.form-group label {
   font-weight: 500;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
-.success-message {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+.required-field::after {
+  content: ' *';
+  color: var(--danger-color);
 }
 
-.error-message {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+/* Inputs & Selects */
+.form-input,
+.form-select,
+input[type="time"],
+input[type="text"],
+input[type="number"],
+select {
+  padding: 0.625rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-sans);
+  transition: var(--transition-base);
+  background-color: white;
+  width: 100%;
 }
 
+.form-input:focus,
+.form-select:focus,
+input:focus,
+select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+  outline: none;
+}
+
+/* Add Host Group */
 .add-host-group {
   display: flex;
-  gap: 10px;
-  align-items: center;
+  gap: var(--spacing-sm);
 }
 
-.add-host-group select {
-  flex: 1; /* Il dropdown occupa lo spazio rimanente */
+.add-host-group>div {
+  /* HostSelector wrapper */
+  flex: 1;
 }
 
-.add-host-btn {
-  padding: 10px 15px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
+/* Host List */
+.host-list-container {
+  background-color: var(--background-color);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
 }
 
-.add-host-btn:hover {
-  background-color: #0056b3;
-}
-
-.add-host-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-/* Contenitore per la lista di host selezionati */
 .host-list-preview {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  min-height: 40px;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
 }
 
 .host-tag {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  background-color: #e0e0e0;
-  color: #333;
-  padding: 5px 10px;
-  border-radius: 15px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .host-tag button {
   background: none;
   border: none;
-  color: #777;
-  font-weight: bold;
-  font-size: 1.1rem;
-  cursor: pointer;
+  color: var(--text-muted);
   margin-left: 8px;
-  padding: 0 5px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0 4px;
+  line-height: 1;
 }
 
 .host-tag button:hover {
-  color: #d9534f; /* Rosso */
+  color: var(--danger-color);
 }
 
-/* ===================================
-   FIX RESPONSIVE PER DISPOSITIVI MOBILI
-   =================================== */
-   @media (max-width: 600px) {
+/* Divider */
+.divider {
+  border: 0;
+  border-top: 1px solid var(--border-color);
+  margin: 0;
+}
 
-    /* 1. Fa sì che il contenitore principale usi tutto lo spazio */
-    .downtime-container {
-      margin: 10px;
-      padding: 15px;
-    }
-  
-    /* 2. Impila il gruppo "Aggiungi Host" (dropdown + bottone) */
-    .add-host-group {
-      flex-direction: column;
-      align-items: stretch; /* Fa sì che gli elementi riempiano la larghezza */
-      gap: 15px;
-    }
-  
-    /* 3. Impila i campi "Ora Inizio" e "Ora Fine" */
-    .time-group {
-      flex-direction: column;
-      gap: 20px; /* Mantiene lo stesso gap */
-    }
-  
-    /* 4. Impila i campi "Durata" (numero + select) */
-    .duration-group {
-      flex-direction: column;
-      align-items: stretch;
-    }
-  
-    .duration-value {
-      width: 100%; /* Fa sì che il campo numero prenda tutta la larghezza */
-    }
-  
-    /* 5. Migliora la spaziatura dei bottoni dei giorni */
-    .weekday-picker {
-      flex-wrap: wrap; /* Permette ai bottoni di andare a capo */
-      gap: 10px;
-    }
-  
-    .day-button {
-      /* Fa sì che 3 bottoni stiano su una riga (circa) */
-      flex-basis: 30%; 
-    }
+/* Duration Group */
+.duration-group {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+/* Info Badge */
+.info-badge {
+  display: flex;
+  gap: var(--spacing-md);
+  background-color: var(--primary-light);
+  border: 1px solid rgba(79, 70, 229, 0.2);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  color: var(--primary-hover-color);
+  font-size: var(--font-size-sm);
+}
+
+.info-badge .icon {
+  font-size: 1.25rem;
+}
+
+/* Alerts */
+.alert {
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  margin-top: var(--spacing-md);
+}
+
+.alert-success {
+  background-color: #D1FAE5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+
+.alert-error {
+  background-color: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+/* Button Large */
+.btn-lg {
+  padding: 0.75rem 1.5rem;
+  font-size: var(--font-size-lg);
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .form-row {
+    flex-direction: column;
+    gap: var(--spacing-md);
   }
+
+  .add-host-group {
+    flex-direction: column;
+  }
+
+  .add-host-group button {
+    width: 100%;
+  }
+}
+
+/* Host Selector */
+.host-selector-container {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: white;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 300px;
+}
+
+.host-selector-header {
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.host-search-input {
+  flex: 1;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+.host-selector-list {
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--spacing-xs);
+}
+
+.host-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.host-item:hover {
+  background: var(--bg-secondary);
+}
+
+.host-item.selected {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.host-selector-footer {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: right;
+}

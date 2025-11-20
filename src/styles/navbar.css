@@ -1,50 +1,64 @@
+/* src/styles/navbar.css */
 
 .navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-sm) var(--spacing-lg);
+  height: 64px;
   background-color: var(--surface-color);
-  color: var(--text-color);
   border-bottom: 1px solid var(--border-color);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  position: relative; /* For z-index to work */
-  z-index: 1000;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-md);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-.navbar-brand {
-    text-align: center;
-    flex-grow: 1;
-}
+/* On desktop, if sidebar is fixed, navbar might need adjustment or be hidden if sidebar covers it. 
+   In this design, Sidebar is full height on left. Navbar is top of main content area. */
 
-.navbar-brand a {
-  color: var(--text-color);
-  text-decoration: none;
-  font-size: 1.2rem; /* Adjusted font size */
-  font-weight: 600;
+.navbar-content {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .sidebar-toggle {
-  display: none; /* Hidden on desktop */
   background: none;
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: var(--text-color);
+  color: var(--text-primary);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
 }
 
-/* This is a placeholder to balance the flexbox layout when the toggle is visible */
-.navbar-user-placeholder {
-    width: 40px; /* Same width as toggle button */
+.sidebar-toggle:hover {
+  background-color: var(--background-color);
 }
 
-/* Responsive navbar adjustments */
-@media (max-width: 991.98px) {
+.navbar-brand-mobile {
+  font-weight: 700;
+  font-size: var(--font-size-lg);
+  display: block;
+}
+
+.navbar-brand-mobile a {
+  color: var(--text-primary);
+}
+
+/* Hide toggle on desktop if sidebar is always visible */
+@media (min-width: 1024px) {
   .sidebar-toggle {
-    display: block; /* Show on mobile/tablet */
+    display: none;
   }
 
-  .navbar-brand {
-    padding-right: 40px; /* Ensure it is centered */
+  .navbar-brand-mobile {
+    display: none;
+    /* Title is in sidebar */
+  }
+
+  .navbar {
+    display: none;
+    /* Hide navbar entirely on desktop if we want a clean sidebar-only look */
   }
 }

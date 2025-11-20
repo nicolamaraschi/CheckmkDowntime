@@ -1,51 +1,79 @@
 /* src/styles/global.css */
 
-/* CSS Variables for theming */
+/* Import Inter font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 :root {
-  --primary-color: #007bff;
-  --primary-hover-color: #0056b3;
-  --secondary-color: #6c757d;
-  --background-color: #f4f7f9;
-  --surface-color: #ffffff;
-  --text-color: #343a40;
-  --text-color-light: #6c757d;
-  --border-color: #dee2e6;
-  --danger-color: #dc3545;
-  --danger-hover-color: #c82333;
+  /* Palette Colori Premium */
+  --primary-color: #4F46E5; /* Indigo 600 */
+  --primary-hover-color: #4338CA; /* Indigo 700 */
+  --primary-light: #E0E7FF; /* Indigo 100 */
+  
+  --secondary-color: #64748B; /* Slate 500 */
+  --secondary-hover-color: #475569; /* Slate 600 */
+  
+  --success-color: #10B981; /* Emerald 500 */
+  --warning-color: #F59E0B; /* Amber 500 */
+  --danger-color: #EF4444; /* Red 500 */
+  --info-color: #3B82F6; /* Blue 500 */
 
-  --font-family-sans-serif: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  --font-family-monospace: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  /* Sfondi e Superfici */
+  --background-color: #F3F4F6; /* Gray 100 - Sfondo app più chiaro */
+  --surface-color: #FFFFFF; /* Bianco puro per le card */
+  --sidebar-bg: #1E293B; /* Slate 800 - Sfondo scuro per sidebar */
+  --sidebar-text: #F8FAFC; /* Slate 50 */
+  
+  /* Testo */
+  --text-primary: #111827; /* Gray 900 */
+  --text-secondary: #4B5563; /* Gray 600 */
+  --text-muted: #9CA3AF; /* Gray 400 */
 
+  /* Bordi e Separatori */
+  --border-color: #E5E7EB; /* Gray 200 */
+  --border-color-dark: #334155; /* Slate 700 (per sidebar) */
+
+  /* Tipografia */
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+
+  /* Spaziature */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
 
-  --border-radius: 8px;
-  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  /* Effetti */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --transition-base: all 0.2s ease-in-out;
 }
 
-/* Basic reset and global settings */
-*,
-*::before,
-*::after {
+/* Reset e Base */
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
-html {
-  font-size: 16px; /* Base font size */
+html, body {
+  height: 100%;
 }
 
 body {
   margin: 0;
   padding: 0;
-  font-family: var(--font-family-sans-serif);
+  font-family: var(--font-family-sans);
   background-color: var(--background-color);
-  color: var(--text-color);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
@@ -53,51 +81,93 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   margin-top: 0;
-  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
   font-weight: 600;
+  letter-spacing: -0.025em; /* Tight tracking for headings */
 }
 
+h1 { font-size: var(--font-size-2xl); }
+h2 { font-size: var(--font-size-xl); }
+h3 { font-size: var(--font-size-lg); }
+
 p {
-  margin-top: 0;
   margin-bottom: var(--spacing-md);
+  color: var(--text-secondary);
 }
 
 a {
   color: var(--primary-color);
   text-decoration: none;
-  transition: color 0.2s ease-in-out;
+  transition: var(--transition-base);
 }
 
 a:hover {
   color: var(--primary-hover-color);
 }
 
-/* Utility classes */
-.container {
-  width: 100%;
-  padding-right: var(--spacing-md);
-  padding-left: var(--spacing-md);
-  margin-right: auto;
-  margin-left: auto;
+/* Utility Classes */
+.card {
+  background-color: var(--surface-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-color);
 }
 
-@media (min-width: 576px) {
-  .container {
-    max-width: 540px;
-  }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-base);
+  border: none;
+  font-size: var(--font-size-sm);
+  gap: 0.5rem;
 }
-@media (min-width: 768px) {
-  .container {
-    max-width: 720px;
-  }
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
 }
-@media (min-width: 992px) {
-  .container {
-    max-width: 960px;
-  }
+
+.btn-primary:hover {
+  background-color: var(--primary-hover-color);
+  transform: translateY(-1px);
 }
-@media (min-width: 1200px) {
-  .container {
-    max-width: 1140px;
-  }
+
+.btn-secondary {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
 }
+
+.btn-secondary:hover {
+  background-color: var(--background-color);
+  border-color: var(--text-muted);
+}
+
+/* Layout Utilities */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-sm { gap: var(--spacing-sm); }
+.gap-md { gap: var(--spacing-md); }
+.w-full { width: 100%; }
+
+/* Responsive Container */
+.container {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: var(--spacing-md);
+  padding-left: var(--spacing-md);
+}
+
+@media (min-width: 640px) { .container { max-width: 640px; } }
+@media (min-width: 768px) { .container { max-width: 768px; } }
+@media (min-width: 1024px) { .container { max-width: 1024px; } }
+@media (min-width: 1280px) { .container { max-width: 1280px; } }

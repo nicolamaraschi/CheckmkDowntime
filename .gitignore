@@ -41,3 +41,10 @@ src/**/aws-*.js
 
 # Mac/Linux build scripts you don't want to commit
 build-
+
+
+build-and-run.sh
+build-docker.sh
+build-x86-tar.sh
+
+*.sh

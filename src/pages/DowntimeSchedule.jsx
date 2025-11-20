@@ -2,67 +2,47 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import ClientSelector from '../components/ClientSelector';
 import HostSelector from '../components/HostSelector';
-// import WeekdayPicker from '../components/WeekdayPicker'; // RIMOSSO
 import TimePicker from '../components/TimePicker';
 import '../styles/downtimeSchedule.css';
 import Loader from '../components/Loader';
 
 const DowntimeSchedule = () => {
-    const [selectedClient, setSelectedClient] = useState('');
-    
-    // --- MODIFICA 1: Gestione host ---
-    const [selectedHost, setSelectedHost] = useState(''); // Host corrente nel dropdown
-    const [hostList, setHostList] = useState([]);         // Lista di host da programmare
-
-    // const [weekdays, setWeekdays] = useState([]); // RIMOSSO
+    const [selectedClients, setSelectedClients] = useState([]);
+    const [hostList, setHostList] = useState([]);
     const [startTime, setStartTime] = useState('00:00');
     const [endTime, setEndTime] = useState('01:00');
-    
     const [durationValue, setDurationValue] = useState(1);
-    const [durationUnit, setDurationUnit] = useState('weeks'); 
-
+    const [durationUnit, setDurationUnit] = useState('weeks');
     const [commento, setCommento] = useState('');
+
+    // Advanced Settings
+    const [batchSize, setBatchSize] = useState(3);
+    const [delay, setDelay] = useState(1.0);
+    const [showAdvanced, setShowAdvanced] = useState(false);
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
 
     const { token } = useAuth();
 
-    // Reset selected host when client changes
     useEffect(() => {
-        setSelectedHost('');
-    }, [selectedClient]);
-
-    // --- NUOVA FUNZIONE: Aggiungi host alla lista ---
-    const handleAddHost = () => {
-        if (selectedHost && !hostList.includes(selectedHost)) {
-            setHostList([...hostList, selectedHost]);
-            setSelectedHost(''); // Resetta il dropdown per la prossima selezione
-        }
-    };
-    
-    // --- NUOVA FUNZIONE: Rimuovi host dalla lista ---
-    const handleRemoveHost = (hostToRemove) => {
-        setHostList(prevList => prevList.filter(host => host !== hostToRemove));
-    };
-
+        // Don't reset host list when clients change - allow accumulation
+    }, [selectedClients]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
         setSuccess(null);
 
-        // --- MODIFICA 2: Controllo sulla lista ---
         if (hostList.length === 0) {
             setError("Per favore, aggiungi almeno un host alla lista.");
             return;
         }
-        
-        // RIMOSSO controllo weekdays.length
 
         if (startTime === endTime) {
-             setError("L'ora di inizio e fine non possono coincidere.");
-             return;
+            setError("L'ora di inizio e fine non possono coincidere.");
+            return;
         }
 
         setLoading(true);
@@ -78,17 +58,18 @@ const DowntimeSchedule = () => {
             default:
                 totalDays = durationValue * 7;
         }
-        
+
         const repeatDaysForBackend = totalDays > 0 ? totalDays - 1 : 0;
 
-        // --- MODIFICA 3: Invia la lista di host ---
         const payload = {
-            hosts: hostList, // Invia la lista
-            giorni: [], // Vuoto, il backend ora lo ignora e applica a tutti i giorni
+            hosts: hostList,
+            giorni: [],
             startTime: startTime,
             endTime: endTime,
-            ripeti: repeatDaysForBackend, 
-            commento: commento || "Manutenzione programmata"
+            ripeti: repeatDaysForBackend,
+            commento: commento || "Manutenzione programmata",
+            batch_size: parseInt(batchSize),
+            delay: parseFloat(delay)
         };
 
         try {
@@ -113,11 +94,8 @@ const DowntimeSchedule = () => {
                 setError(`Operazione completata con ${errorsInResponses.length} errori su ${result.responses.length} task. Primo errore: ${firstError}`);
             } else {
                 setSuccess(`✓ Downtime programmato con successo per ${hostList.length} host! (${result.responses.length} slot totali creati)`);
-                // Reset del form
-                setSelectedClient('');
-                setSelectedHost('');
-                setHostList([]); // Resetta la lista
-                // setWeekdays([]); // RIMOSSO
+                setSelectedClients([]);
+                setHostList([]);
                 setDurationValue(1);
                 setDurationUnit('weeks');
                 setCommento('');
@@ -132,16 +110,11 @@ const DowntimeSchedule = () => {
 
     if (loading) {
         return (
-            <div className="downtime-container">
-                <h1>⏳ Programmazione in corso...</h1>
-                <Loader text={`Creazione di ${hostList.length * (durationValue * 7)} slot di downtime... Questo può richiedere diversi minuti.`} />
-                <div style={{ 
-                    textAlign: 'center', 
-                    marginTop: '20px', 
-                    color: '#6c757d',
-                    fontSize: '0.95rem'
-                }}>
-                    <p>Non chiudere questa pagina.</p>
+            <div className="container">
+                <div className="card text-center p-xl">
+                    <h1>⏳ Programmazione in corso...</h1>
+                    <Loader text={`Creazione di ${hostList.length * (durationValue * 7)} slot di downtime...`} />
+                    <p className="text-muted mt-md">Non chiudere questa pagina.</p>
                 </div>
             </div>
         );
@@ -156,133 +129,187 @@ const DowntimeSchedule = () => {
     };
 
     return (
-        <div className="downtime-container">
-            <h1>📅 Programma Downtime Massivo</h1>
-            
-            <form className="downtime-form" onSubmit={handleSubmit}>
+        <div className="container">
+            <div className="page-header">
+                <h1>Programma Downtime</h1>
+                <p className="page-subtitle">Pianifica finestre di manutenzione per uno o più host.</p>
+            </div>
 
-                {/* --- BLOCCO 1: SELEZIONE HOST --- */}
-                <div className="form-group">
-                    <label className="required-field">1. Seleziona Host da Aggiungere</label>
-                    <ClientSelector selectedClient={selectedClient} setSelectedClient={setSelectedClient} />
-                    
-                    <div className="add-host-group">
-                        <HostSelector
-                            selectedHost={selectedHost}
-                            setSelectedHost={setSelectedHost}
-                            selectedClient={selectedClient}
-                        />
-                        <button 
-                            type="button" 
-                            className="add-host-btn" 
-                            onClick={handleAddHost}
-                            disabled={!selectedHost}
-                        >
-                            Aggiungi +
-                        </button>
-                    </div>
-                </div>
+            <div className="card">
+                <form className="downtime-form" onSubmit={handleSubmit}>
 
-                {/* --- NUOVO BLOCCO: LISTA HOST --- */}
-                {hostList.length > 0 && (
-                    <div className="form-group">
-                        <label>Host Selezionati ({hostList.length})</label>
-                        <div className="host-list-preview">
-                            {hostList.map(host => (
-                                <span key={host} className="host-tag">
-                                    {host}
-                                    <button 
-                                        type="button" 
-                                        onClick={() => handleRemoveHost(host)}
-                                        title={`Rimuovi ${host}`}
-                                    >
-                                        &times;
-                                    </button>
-                                </span>
-                            ))}
+                    {/* SELEZIONE HOST */}
+                    <div className="form-section">
+                        <h3 className="section-title">1. Seleziona Clienti e Host</h3>
+                        <div className="form-group">
+                            <label>Clienti (Seleziona uno o più)</label>
+                            <ClientSelector selectedClients={selectedClients} setSelectedClients={setSelectedClients} />
+                        </div>
+
+                        {/* HOST SELECTOR FULL WIDTH */}
+                        <div className="form-group mt-md">
+                            <label>Seleziona Host</label>
+                            <HostSelector
+                                selectedHosts={hostList}
+                                setSelectedHosts={setHostList}
+                                selectedClients={selectedClients}
+                            />
                         </div>
                     </div>
-                )}
-                
-                {/* --- BLOCCO 2: CONFIGURAZIONE (uguale per tutti) --- */}
-                <hr style={{border: '1px solid #f0f0f0', margin: '15px 0'}} />
-                
-                <label className="required-field" style={{fontWeight: 600, fontSize: '1.1rem'}}>2. Configura il Downtime</label>
 
-                <div className="time-group">
-                    <div className="form-group">
-                        <label className="required-field">Ora Inizio (Tutti i giorni)</label>
-                        <TimePicker 
-                            value={startTime} 
-                            onChange={setStartTime} 
-                        />
+                    {/* LISTA HOST SELEZIONATI (Cross-Client) */}
+                    {hostList.length > 0 && (
+                        <div className="host-list-container mt-md">
+                            <div className="flex justify-between items-center mb-sm">
+                                <label className="text-sm text-muted">
+                                    Host Selezionati Totali ({hostList.length})
+                                </label>
+                                <button
+                                    type="button"
+                                    className="btn btn-xs btn-secondary text-danger"
+                                    onClick={() => setHostList([])}
+                                >
+                                    Svuota tutto
+                                </button>
+                            </div>
+                            <div className="host-list-preview">
+                                {hostList.map(host => (
+                                    <span key={host} className="host-tag">
+                                        {host}
+                                        <button
+                                            type="button"
+                                            onClick={() => setHostList(prev => prev.filter(h => h !== host))}
+                                            title={`Rimuovi ${host}`}
+                                        >
+                                            &times;
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <hr className="divider" />
+
+                    {/* CONFIGURAZIONE */}
+                    <div className="form-section">
+                        <h3 className="section-title">2. Configura Periodo</h3>
+
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label className="required-field">Ora Inizio</label>
+                                <TimePicker value={startTime} onChange={setStartTime} />
+                            </div>
+                            <div className="form-group">
+                                <label className="required-field">Ora Fine</label>
+                                <TimePicker value={endTime} onChange={setEndTime} />
+                            </div>
+                        </div>
+
+                        <div className="info-badge">
+                            <span className="icon">ℹ️</span>
+                            <div>
+                                <strong>Logica di Programmazione:</strong><br />
+                                L'orario {startTime} - {endTime} verrà applicato <strong>tutti i giorni</strong>.<br />
+                                Weekend (Sab-Dom) incluso automaticamente.
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label className="required-field">Durata</label>
+                                <div className="duration-group">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="365"
+                                        value={durationValue}
+                                        onChange={(e) => setDurationValue(parseInt(e.target.value))}
+                                        className="form-input"
+                                    />
+                                    <select
+                                        value={durationUnit}
+                                        onChange={(e) => setDurationUnit(e.target.value)}
+                                        className="form-select"
+                                    >
+                                        <option value="weeks">Settimane</option>
+                                        <option value="months">Mesi</option>
+                                    </select>
+                                </div>
+                                <span className="text-sm text-muted mt-xs">{getDurationText()}</span>
+                            </div>
+
+                            <div className="form-group flex-2">
+                                <label>Commento</label>
+                                <input
+                                    type="text"
+                                    value={commento}
+                                    onChange={(e) => setCommento(e.target.value)}
+                                    placeholder="Es. Manutenzione ordinaria"
+                                    maxLength={200}
+                                    className="form-input"
+                                />
+                            </div>
+                        </div>
                     </div>
-                    <div className="form-group">
-                        <label className="required-field">Ora Fine (Tutti i giorni)</label>
-                        <TimePicker 
-                            value={endTime} 
-                            onChange={setEndTime} 
-                        />
-                    </div>
-                </div>
 
-                {/* RIMOSSO WeekdayPicker */}
-                <div className="form-group">
-                    <span className="info-badge" style={{
-                        marginTop: '10px', backgroundColor: '#e6f7ff', color: '#0056b3', 
-                        textAlign: 'left', display: 'block', padding: '15px', borderRadius: '8px', border: '1px solid #b8daff'
-                    }}>
-                        ℹ️ **Logica di Programmazione:**<br/>
-                        1. L'orario selezionato (es. {startTime} - {endTime}) verrà applicato **tutti i giorni** (Lun-Dom).<br/>
-                        2. Inoltre, verrà aggiunto **automaticamente** un downtime completo per il Weekend (**Sabato 00:00 - Domenica 23:59**).
-                    </span>
-                </div>
-
-                <div className="form-group">
-                    <label className="required-field">Durata</label>
-                    <div className="duration-group">
-                        <input 
-                            type="number" 
-                            min="1" 
-                            max="365"
-                            value={durationValue} 
-                            onChange={(e) => setDurationValue(parseInt(e.target.value))}
-                            className="duration-value"
-                        />
-                        <select 
-                            value={durationUnit} 
-                            onChange={(e) => setDurationUnit(e.target.value)}
-                            className="duration-unit"
+                    {/* ADVANCED SETTINGS */}
+                    <div className="form-section">
+                        <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => setShowAdvanced(!showAdvanced)}
+                            style={{ alignSelf: 'flex-start' }}
                         >
-                            <option value="weeks">Settimane</option>
-                            <option value="months">Mesi</option>
-                        </select>
+                            {showAdvanced ? '🔽 Nascondi Avanzate' : '▶️ Mostra Avanzate'}
+                        </button>
+
+                        {showAdvanced && (
+                            <div className="advanced-settings p-md bg-gray-50 rounded-md mt-sm border border-gray-200">
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label title="Numero di richieste simultanee verso Checkmk">
+                                            Batch Size (Richieste Parallele)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="50"
+                                            value={batchSize}
+                                            onChange={(e) => setBatchSize(e.target.value)}
+                                            className="form-input"
+                                        />
+                                        <span className="text-xs text-muted">Default: 3</span>
+                                    </div>
+                                    <div className="form-group">
+                                        <label title="Attesa in secondi tra un blocco e l'altro">
+                                            Delay tra Batch (secondi)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.1"
+                                            value={delay}
+                                            onChange={(e) => setDelay(e.target.value)}
+                                            className="form-input"
+                                        />
+                                        <span className="text-xs text-muted">Default: 1.0s</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    <span className="info-badge">
-                        {getDurationText()}
-                    </span>
-                </div>
 
-                <div className="form-group">
-                    <label>Commento</label>
-                    <input 
-                        type="text" 
-                        value={commento} 
-                        onChange={(e) => setCommento(e.target.value)}
-                        placeholder="Es. Spegnimento notturno e weekend"
-                        maxLength={200}
-                    />
-                </div>
+                    <div className="form-actions">
+                        <button type="submit" className="btn btn-primary btn-lg w-full" disabled={loading || hostList.length === 0}>
+                            {loading ? 'Programmazione...' : `🚀 Programma per ${hostList.length} Host`}
+                        </button>
+                    </div>
 
-                <div className="form-actions">
-                    <button type="submit" className="submit-btn" disabled={loading || hostList.length === 0}>
-                        {loading ? 'Programmazione...' : `🚀 Programma per ${hostList.length} Host`}
-                    </button>
-                </div>
-
-                {success && <div className="form-message success-message">{success}</div>}
-                {error && <div className="form-message error-message">{error}</div>}
-            </form>
+                    {success && <div className="alert alert-success">{success}</div>}
+                    {error && <div className="alert alert-error">{error}</div>}
+                </form>
+            </div>
         </div>
     );
 };

@@ -1,0 +1,246 @@
+/* src/styles/auth.css */
+
+/* Wrapper per centrare e dare sfondo alla pagina di login */
+[data-amplify-authenticator] {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--bg-secondary);
+    /* Background scuro/grigio del tema */
+    background-image: radial-gradient(circle at 50% 50%, rgba(79, 70, 229, 0.05) 0%, transparent 50%);
+}
+
+/* Override delle variabili CSS di Amplify per allinearle al tema Indigo */
+:root {
+    --amplify-colors-brand-primary-10: var(--primary-light);
+    --amplify-colors-brand-primary-80: var(--primary-color);
+    --amplify-colors-brand-primary-90: var(--primary-hover-color);
+    --amplify-colors-brand-primary-100: var(--primary-hover-color);
+
+    --amplify-components-button-primary-background-color: var(--primary-color);
+    --amplify-components-button-primary-hover-background-color: var(--primary-hover-color);
+    --amplify-components-button-primary-focus-background-color: var(--primary-hover-color);
+    --amplify-components-button-primary-active-background-color: var(--primary-hover-color);
+
+    --amplify-components-tabs-item-active-color: var(--primary-color);
+    --amplify-components-tabs-item-active-border-color: var(--primary-color);
+
+    --amplify-components-fieldcontrol-focus-box-shadow: 0 0 0 2px var(--primary-light);
+    --amplify-components-fieldcontrol-focus-border-color: var(--primary-color);
+
+    --amplify-fonts-default-variable: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Card del Login */
+[data-amplify-router] {
+    box-shadow: var(--shadow-xl) !important;
+    border-radius: var(--radius-lg) !important;
+    border: 1px solid var(--border-color) !important;
+    background-color: white !important;
+    max-width: 450px !important;
+    /* Larghezza standard per login card */
+    width: 90% !important;
+    padding: 2rem !important;
+    display: block !important;
+    /* Rimuovi grid */
+}
+
+/* Fix per l'autofill blu di Chrome */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Header/Tabs */
+.amplify-tabs {
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+}
+
+.amplify-tabs__item {
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: color 0.2s;
+    padding: 1rem;
+}
+
+.amplify-tabs__item:hover {
+    color: var(--primary-color);
+}
+
+.amplify-tabs__item[data-state='active'] {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Force full width on everything inside the form */
+[data-amplify-authenticator] [data-amplify-form],
+[data-amplify-authenticator] form,
+[data-amplify-authenticator] fieldset,
+[data-amplify-authenticator] .amplify-flex,
+[data-amplify-authenticator] .amplify-tabs__panel {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    /* Kill any max-width */
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    min-width: 0 !important;
+}
+
+/* Input Fields Container */
+.amplify-field {
+    margin-bottom: 1.5rem !important;
+    width: 100% !important;
+    display: block !important;
+}
+
+/* Password Field Group (Input + Show/Hide Button) */
+.amplify-field-group,
+[data-amplify-field-group] {
+    width: 100% !important;
+    display: block !important;
+    /* Block is fine with absolute button */
+    position: relative !important;
+}
+
+/* Input inside the group */
+.amplify-field-group .amplify-input,
+[data-amplify-field-group] input {
+    width: 100% !important;
+    /* Full width */
+    padding-right: 3.5rem !important;
+    /* Space for the button */
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+/* The Show/Hide Password Button */
+.amplify-field-group button,
+.amplify-passwordfield button,
+[data-amplify-field-group] button {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    height: 100% !important;
+    width: 3rem !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-left: 1px solid var(--border-color) !important;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0 !important;
+    color: var(--text-secondary) !important;
+    cursor: pointer !important;
+    z-index: 2 !important;
+}
+
+.amplify-field-group button:hover,
+[data-amplify-field-group] button:hover {
+    background-color: var(--bg-secondary) !important;
+    color: var(--primary-color) !important;
+}
+
+/* Regular Input Fields (not in a group) */
+.amplify-textfield {
+    margin-bottom: 1.5rem !important;
+    width: 100% !important;
+    display: block !important;
+    max-width: 100% !important;
+}
+
+/* Input Fields */
+.amplify-input,
+[data-amplify-authenticator] input {
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border-color) !important;
+    padding: 0.75rem !important;
+    font-size: 0.95rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background-color: white !important;
+    max-width: 100% !important;
+}
+
+.amplify-input:focus,
+[data-amplify-authenticator] input:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px var(--primary-light) !important;
+    outline: none !important;
+}
+
+/* Labels */
+.amplify-label {
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+    margin-bottom: 0.5rem !important;
+    display: block !important;
+    text-align: left !important;
+}
+
+/* Primary Button */
+.amplify-button--primary,
+[data-amplify-authenticator] button[type="submit"] {
+    border-radius: var(--radius-md) !important;
+    font-weight: 600 !important;
+    padding: 0.75rem !important;
+    transition: all 0.2s ease !important;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color)) !important;
+    width: 100% !important;
+    margin-top: 1rem !important;
+    display: block !important;
+    max-width: 100% !important;
+}
+
+.amplify-button--primary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Links (Forgot Password, etc) */
+.amplify-link {
+    color: var(--primary-color) !important;
+    font-weight: 500 !important;
+    display: block !important;
+    text-align: center !important;
+    margin-top: 1rem !important;
+}
+
+/* Tabs Content */
+[data-amplify-router-content] {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+}
+
+/* Error Messages */
+.amplify-alert--error {
+    background-color: #FEF2F2 !important;
+    color: #991B1B !important;
+    border: 1px solid #FECACA !important;
+    border-radius: var(--radius-md) !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    [data-amplify-router] {
+        max-width: 100% !important;
+        padding: 1.5rem !important;
+    }
+
+    .amplify-tabs {
+        margin-bottom: 1.5rem;
+    }
+}

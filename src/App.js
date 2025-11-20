@@ -9,8 +9,10 @@ import Dashboard from './pages/Dashboard';
 import HostConfig from './pages/HostConfig';
 import DowntimeSchedule from './pages/DowntimeSchedule';
 import ExistingDowntimes from './pages/ExistingDowntimes';
+import Certificates from './pages/Certificates';
 import Settings from './pages/Settings';
 import './styles/global.css';
+import './styles/auth.css';
 
 // 1. IMPORTA IL PROVIDER MANCANTE
 import { AuthProvider } from './auth/AuthProvider';
@@ -44,6 +46,7 @@ function App() {
                   {/* Ora DowntimeSchedule troverà il contesto di cui ha bisogno */}
                   <Route path="schedule" element={<DowntimeSchedule />} />
                   <Route path="downtimes" element={<ExistingDowntimes />} />
+                  <Route path="certificates" element={<Certificates />} />
                   <Route path="settings" element={<Settings />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />

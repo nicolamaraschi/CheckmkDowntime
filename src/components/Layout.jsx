@@ -23,9 +23,9 @@ const Layout = ({ user, signOut }) => {
 
   return (
     <div className={`app-container ${isSidebarOpen ? 'sidebar-is-open' : ''}`}>
-      <Navbar toggleSidebar={toggleSidebar} />
+      <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} user={user} logout={signOut} />
       <div className="content-container">
-        <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} user={user} logout={signOut} />
+        <Navbar toggleSidebar={toggleSidebar} />
         <main className="main-content">
           <Outlet />
         </main>

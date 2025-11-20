@@ -5,14 +5,19 @@ import '../styles/navbar.css';
 const Navbar = ({ toggleSidebar }) => {
   return (
     <nav className="navbar">
-      <button className="sidebar-toggle" onClick={toggleSidebar}>
-        &#9776; {/* Hamburger icon */}
-      </button>
-      <div className="navbar-brand">
-        <Link to="/">Checkmk Downtime</Link>
+      <div className="navbar-content">
+        <button className="sidebar-toggle" onClick={toggleSidebar} aria-label="Toggle Menu">
+          <span className="hamburger-icon">☰</span>
+        </button>
+
+        <div className="navbar-brand-mobile">
+          <Link to="/">Checkmk Downtime</Link>
+        </div>
+
+        <div className="navbar-actions">
+          {/* Placeholder for potential top-bar actions like notifications */}
+        </div>
       </div>
-      {/* User info and sign out are now in the sidebar */}
-      <div className="navbar-user-placeholder"></div>
     </nav>
   );
 };
