@@ -11,12 +11,15 @@ import DowntimeSchedule from './pages/DowntimeSchedule';
 import ExistingDowntimes from './pages/ExistingDowntimes';
 import Certificates from './pages/Certificates';
 import Settings from './pages/Settings';
+import CloudConnexaDashboard from './pages/CloudConnexaDashboard';
+import CloudConnexaSearch from './pages/CloudConnexaSearch';
+import SapDashboard from './pages/SapDashboard';
 import './styles/global.css';
 import './styles/auth.css';
 
 // 1. IMPORTA IL PROVIDER MANCANTE
 import { AuthProvider } from './auth/AuthProvider';
-
+import ProtectedRoute from './auth/ProtectedRoute';
 // Configurazione Cognito
 Amplify.configure({
   Auth: {
@@ -48,6 +51,10 @@ function App() {
                   <Route path="downtimes" element={<ExistingDowntimes />} />
                   <Route path="certificates" element={<Certificates />} />
                   <Route path="settings" element={<Settings />} />
+                  <Route path="cloudconnexa/dashboard" element={<CloudConnexaDashboard />} />
+                  <Route path="cloudconnexa/search" element={<CloudConnexaSearch />} />
+                  <Route path="logs/:type" element={<CloudConnexaSearch />} />
+                  <Route path="sap/dashboard" element={<SapDashboard />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

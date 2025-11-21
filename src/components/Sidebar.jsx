@@ -1,21 +1,32 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { FaClock, FaCalendarPlus, FaServer, FaCog, FaShieldAlt } from 'react-icons/fa';
+import { FaClock, FaCalendarPlus, FaServer, FaCog, FaShieldAlt, FaFileAlt } from 'react-icons/fa';
 import '../styles/sidebar.css';
 
 const Sidebar = ({ isOpen, closeSidebar, user, logout }) => {
+  const [cloudConnexaOpen, setCloudConnexaOpen] = React.useState(false);
+
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
     { path: '/downtimes', label: 'Downtime Esistenti', icon: <FaClock /> },
     { path: '/schedule', label: 'Pianifica Downtime', icon: <FaCalendarPlus /> },
     { path: '/certificates', label: 'Certificati', icon: <FaShieldAlt /> },
+    {
+      label: 'CloudConnexa',
+      icon: <FaFileAlt />,
+      submenu: [
+        { path: '/cloudconnexa/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/cloudconnexa/search', label: 'Ricerca Log', icon: '🔍' }
+      ]
+    },
+    { path: '/sap/dashboard', label: 'SAP System Control', icon: '💾' },
     { path: '/hosts', label: 'Configurazione Host', icon: <FaServer /> },
     { path: '/settings', label: 'Impostazioni', icon: <FaCog /> }
   ];
 
   return (
     <>
-      <aside className={`sidebar ${isOpen ? 'is-open' : ''}`}>
+      <aside className={`sidebar ${isOpen ? 'is-open' : ''} `}>
         <div className="sidebar-header">
           <div className="logo-area">
             <span className="logo-icon">🛡️</span>
@@ -26,17 +37,46 @@ const Sidebar = ({ isOpen, closeSidebar, user, logout }) => {
 
         <nav className="sidebar-nav">
           <ul>
-            {navItems.map((item) => (
-              <li key={item.path}>
-                <NavLink
-                  to={item.path}
-                  end={item.path === '/'}
-                  className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                  onClick={closeSidebar}
-                >
-                  <span className="nav-icon">{item.icon}</span>
-                  <span className="nav-label">{item.label}</span>
-                </NavLink>
+            {navItems.map((item, index) => (
+              <li key={item.path || index}>
+                {item.submenu ? (
+                  <>
+                    <div
+                      className="nav-item submenu-toggle"
+                      onClick={() => setCloudConnexaOpen(!cloudConnexaOpen)}
+                    >
+                      <span className="nav-icon">{item.icon}</span>
+                      <span className="nav-label">{item.label}</span>
+                      <span className="submenu-arrow">{cloudConnexaOpen ? '▼' : '▶'}</span>
+                    </div>
+                    {cloudConnexaOpen && (
+                      <ul className="submenu">
+                        {item.submenu.map((subItem) => (
+                          <li key={subItem.path}>
+                            <NavLink
+                              to={subItem.path}
+                              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                              onClick={closeSidebar}
+                            >
+                              <span className="nav-icon">{subItem.icon}</span>
+                              <span className="nav-label">{subItem.label}</span>
+                            </NavLink>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                ) : (
+                  <NavLink
+                    to={item.path}
+                    end={item.path === '/'}
+                    className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                    onClick={closeSidebar}
+                  >
+                    <span className="nav-icon">{typeof item.icon === 'string' ? item.icon : item.icon}</span>
+                    <span className="nav-label">{item.label}</span>
+                  </NavLink>
+                )}
               </li>
             ))}
           </ul>

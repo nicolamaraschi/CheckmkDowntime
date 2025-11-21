@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 # Importa il router dal tuo file routes.py
 # GIUSTO
 from .routes import router as api_router
+from .routes_logs import router as logs_router
+from .routes_cloudconnexa import router as cloudconnexa_router
+from .routes_sap import router as sap_router
 
 # Configura il logging
 logging.basicConfig(
@@ -44,6 +47,9 @@ app.add_middleware(
 # Questa riga dice a FastAPI di usare tutte le rotte definite
 # in routes.py e di prefissarle con /api
 app.include_router(api_router, prefix="/api")
+app.include_router(logs_router, prefix="/api")
+app.include_router(cloudconnexa_router, prefix="/api")
+app.include_router(sap_router, prefix="/api")
 
 # --- ROUTE DUPLICATE RIMOSSE ---
 # Le rotte /api/hosts, /api/downtime, /api/downtimes, /api/test-connection

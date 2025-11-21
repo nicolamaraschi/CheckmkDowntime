@@ -16,28 +16,28 @@ const ExistingDowntimes = () => {
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [autoRefresh, setAutoRefresh] = useState(false);
     const [abortController, setAbortController] = useState(null);
-    
+
     // --- NUOVO STATE PER LA SELEZIONE ---
     const [selectedDowntimes, setSelectedDowntimes] = useState(new Set());
-    
-    const { data: hostsData, loading: hostsLoading, error: hostsError } = useApi('hosts');
+
+    const { data: hostsData } = useApi('hosts');
     const { token, refreshToken, logout } = useAuth();
-    
+
     const fetchDowntimes = useCallback(async (filter) => {
         // ... (la tua funzione fetchDowntimes esistente non cambia) ...
         if (!filter || !token) return;
-        
+
         if (abortController) {
             abortController.abort();
         }
-        
+
         const controller = new AbortController();
         setAbortController(controller);
-        
+
         setIsLoading(true);
         setError(null);
         setSelectedDowntimes(new Set()); // Resetta la selezione ad ogni nuova ricerca
-        
+
         let queryString = '';
         if (filter.client) {
             queryString = `cliente=${encodeURIComponent(filter.client)}`;
@@ -56,7 +56,7 @@ const ExistingDowntimes = () => {
                 },
                 signal: controller.signal
             });
-            
+
             if (response.status === 401) {
                 const newToken = await refreshToken();
                 if (newToken) {
@@ -67,7 +67,7 @@ const ExistingDowntimes = () => {
                         },
                         signal: controller.signal
                     });
-                    
+
                     if (!retryResponse.ok) throw new Error(`Errore: ${retryResponse.status}`);
                     const data = await retryResponse.json();
                     setDowntimes(data.downtimes || []);
@@ -83,9 +83,9 @@ const ExistingDowntimes = () => {
                 setDowntimes(data.downtimes || []);
                 setFromCache(data.fromCache || false);
             }
-            
+
             setLastRefreshed(new Date());
-            
+
         } catch (err) {
             if (err.name !== 'AbortError') {
                 console.error("Errore nel recupero dei downtime:", err);
@@ -110,7 +110,7 @@ const ExistingDowntimes = () => {
             setError("Token non trovato. Esegui nuovamente il login.");
             return;
         }
-        setIsLoading(true); 
+        setIsLoading(true);
         setError(null);
         try {
             const response = await fetch(`/api/downtimes/${downtimeId}?site_id=${encodeURIComponent(siteId)}`, {
@@ -126,9 +126,9 @@ const ExistingDowntimes = () => {
                     });
                     if (!retryResponse.ok && retryResponse.status !== 204) throw new Error(`Errore: ${retryResponse.status}`);
                 } else {
-                     setError("Sessione scaduta. Esegui nuovamente il login.");
-                     logout();
-                     return;
+                    setError("Sessione scaduta. Esegui nuovamente il login.");
+                    logout();
+                    return;
                 }
             } else if (!response.ok && response.status !== 204) {
                 const errData = await response.json();
@@ -160,7 +160,7 @@ const ExistingDowntimes = () => {
 
         // 1. Trova gli oggetti downtime completi (ci serve il site_id)
         const downtimesToDelete = downtimes.filter(dt => selectedIds.includes(dt.id));
-        
+
         // 2. Prepara il payload per il backend
         const payload = {
             downtimes: downtimesToDelete.map(dt => ({
@@ -178,7 +178,7 @@ const ExistingDowntimes = () => {
                 },
                 body: JSON.stringify(payload)
             });
-            
+
             // Gestione 401 (token scaduto)
             if (response.status === 401) {
                 const newToken = await refreshToken();
@@ -189,7 +189,7 @@ const ExistingDowntimes = () => {
                 }
                 // Riprova
                 const retryResponse = await fetch('/api/downtimes/delete-batch', {
-                     method: 'POST',
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${newToken}`
@@ -197,18 +197,18 @@ const ExistingDowntimes = () => {
                     body: JSON.stringify(payload)
                 });
                 if (!retryResponse.ok) {
-                     const errData = await retryResponse.json();
-                     throw new Error(errData.detail || `Errore: ${retryResponse.status}`);
+                    const errData = await retryResponse.json();
+                    throw new Error(errData.detail || `Errore: ${retryResponse.status}`);
                 }
                 const result = await retryResponse.json();
                 handleBatchDeleteResponse(result); // Gestisci la risposta
-            
+
             } else if (!response.ok) {
                 const errData = await response.json();
                 throw new Error(errData.detail || `Errore: ${response.status}`);
             } else {
-                 const result = await response.json();
-                 handleBatchDeleteResponse(result); // Gestisci la risposta
+                const result = await response.json();
+                handleBatchDeleteResponse(result); // Gestisci la risposta
             }
 
         } catch (err) {
@@ -218,7 +218,7 @@ const ExistingDowntimes = () => {
             setIsLoading(false);
         }
     };
-    
+
     // Funzione helper per gestire il risultato del batch
     const handleBatchDeleteResponse = (result) => {
         if (result.failed > 0) {
@@ -226,7 +226,7 @@ const ExistingDowntimes = () => {
         } else {
             alert(`Cancellati ${result.succeeded} downtime con successo.`);
         }
-        
+
         // Pulisci i downtime cancellati dallo stato
         const failedIds = new Set(
             result.errors.map(err => err.match(/Failed dt (\w+)/)?.[1]).filter(Boolean)
@@ -238,7 +238,7 @@ const ExistingDowntimes = () => {
     };
 
     // --- NUOVI HANDLER PER LE CHECKBOX ---
-    
+
     // Gestisce il "Seleziona/Deseleziona Tutto"
     const handleSelectAll = (e) => {
         if (e.target.checked) {
@@ -270,24 +270,24 @@ const ExistingDowntimes = () => {
 
     // ... (useEffect, useMemo, handleReset, handleSearch, handleRefresh, etc. restano uguali) ...
     useEffect(() => {
-        return () => { if (abortController) { abortController.abort(); }};
+        return () => { if (abortController) { abortController.abort(); } };
     }, [abortController]);
-    
+
     useEffect(() => {
         setSelectedHost('');
     }, [selectedClient]);
-    
+
     useEffect(() => {
         let refreshInterval;
         if (autoRefresh && (selectedHost || selectedClient) && !isLoading && lastRefreshed) {
             refreshInterval = setInterval(() => {
-                if (selectedHost) { fetchDowntimes({ host: selectedHost }); } 
+                if (selectedHost) { fetchDowntimes({ host: selectedHost }); }
                 else if (selectedClient) { fetchDowntimes({ client: selectedClient }); }
-            }, 120000); 
+            }, 120000);
         }
-        return () => { if (refreshInterval) { clearInterval(refreshInterval); }};
+        return () => { if (refreshInterval) { clearInterval(refreshInterval); } };
     }, [autoRefresh, selectedHost, selectedClient, fetchDowntimes, isLoading, lastRefreshed]);
-    
+
     const hostFolderMap = useMemo(() => {
         const map = new Map();
         if (hostsData) {
@@ -300,7 +300,7 @@ const ExistingDowntimes = () => {
         }
         return map;
     }, [hostsData]);
-    
+
     const activeDowntimes = useMemo(() => {
         if (!downtimes.length) return 0;
         const now = new Date();
@@ -311,7 +311,7 @@ const ExistingDowntimes = () => {
             return startTime <= now && endTime >= now;
         }).length;
     }, [downtimes]);
-    
+
     const handleReset = () => {
         if (abortController) { abortController.abort(); setAbortController(null); }
         setSelectedClient('');
@@ -321,27 +321,27 @@ const ExistingDowntimes = () => {
         setLastRefreshed(null);
         setSelectedDowntimes(new Set()); // Resetta selezione
     };
-    
+
     const handleSearch = () => {
         if (isLoading) return;
-        if (selectedHost) { fetchDowntimes({ host: selectedHost }); } 
+        if (selectedHost) { fetchDowntimes({ host: selectedHost }); }
         else if (selectedClient) { fetchDowntimes({ client: selectedClient }); }
     };
-    
+
     const handleRefresh = () => {
         if (isLoading || !lastRefreshed) return;
-        if (selectedHost) { fetchDowntimes({ host: selectedHost }); } 
+        if (selectedHost) { fetchDowntimes({ host: selectedHost }); }
         else if (selectedClient) { fetchDowntimes({ client: selectedClient }); }
     };
-    
+
     const toggleAutoRefresh = () => {
         setAutoRefresh(!autoRefresh);
     };
-    
+
     return (
         <div className="downtime-container">
             <h1>Downtime Esistenti</h1>
-            
+
             {/* ... (Sezione refresh-info, cache-notification, filter-container restano uguali) ... */}
             {lastRefreshed && (
                 <div className="refresh-info">
@@ -350,13 +350,13 @@ const ExistingDowntimes = () => {
                     </div>
                     <div className="refresh-controls">
                         <label>
-                            <input 
-                                type="checkbox" 
-                                checked={autoRefresh} 
+                            <input
+                                type="checkbox"
+                                checked={autoRefresh}
                                 onChange={toggleAutoRefresh}
                             /> Aggiornamento automatico
                         </label>
-                        <button 
+                        <button
                             className="refresh-button"
                             onClick={handleRefresh}
                             disabled={(!selectedHost && !selectedClient) || isLoading || !lastRefreshed}
@@ -366,23 +366,23 @@ const ExistingDowntimes = () => {
                     </div>
                 </div>
             )}
-            
+
             {fromCache && (
                 <div className="cache-notification">
                     <i>ℹ️</i> Dati caricati dalla cache
                 </div>
             )}
-            
+
             <div className="filter-container">
                 <div className="filter-row">
                     <div className="filter-item">
                         <label>Filtra per cliente:</label>
-                        <ClientSelector 
-                            selectedClient={selectedClient} 
-                            setSelectedClient={setSelectedClient} 
+                        <ClientSelector
+                            selectedClient={selectedClient}
+                            setSelectedClient={setSelectedClient}
                         />
                     </div>
-                    
+
                     <div className="filter-item">
                         <label>Filtra per host specifico:</label>
                         <HostSelector
@@ -391,16 +391,16 @@ const ExistingDowntimes = () => {
                             selectedClient={selectedClient}
                         />
                     </div>
-                    
+
                     <div className="filter-actions">
-                        <button 
+                        <button
                             className="search-button"
                             onClick={handleSearch}
                             disabled={(!selectedClient && !selectedHost) || isLoading}
                         >
                             🔍 Cerca
                         </button>
-                        <button 
+                        <button
                             className="reset-button"
                             onClick={handleReset}
                         >
@@ -409,13 +409,13 @@ const ExistingDowntimes = () => {
                     </div>
                 </div>
             </div>
-            
+
             {isLoading && (
                 <div style={{ marginTop: "30px", marginBottom: "20px" }}>
                     <Loader text="Caricamento in corso..." />
                 </div>
             )}
-            
+
             {error && (
                 <div className="error-card">
                     <h2>Errore</h2>
@@ -423,16 +423,16 @@ const ExistingDowntimes = () => {
                     {/* ... (logica bottoni errore) ... */}
                 </div>
             )}
-            
+
             {/* ... (logica messaggi filter-notice, no-results) ... */}
-             {!selectedClient && !selectedHost && !isLoading && !error && (
+            {!selectedClient && !selectedHost && !isLoading && !error && (
                 <div className="filter-notice">
                     <p>Seleziona un cliente o un host specifico e clicca su "Cerca" per visualizzare i downtime.</p>
                 </div>
             )}
             {/* ... (etc) ... */}
 
-            
+
             {!isLoading && !error && lastRefreshed && (selectedClient || selectedHost) && downtimes.length > 0 && (
                 <>
                     {/* --- NUOVO PANNELLO AZIONI MASSIVE --- */}
@@ -454,13 +454,13 @@ const ExistingDowntimes = () => {
                             </div>
                         )}
                     </div>
-                    
+
                     <table className="downtime-table">
                         <thead>
                             <tr>
                                 {/* --- NUOVA CHECKBOX INTESTAZIONE --- */}
                                 <th className="checkbox-cell">
-                                    <input 
+                                    <input
                                         type="checkbox"
                                         checked={isAllSelected}
                                         onChange={handleSelectAll}
@@ -483,17 +483,17 @@ const ExistingDowntimes = () => {
                                 const hostName = dt.extensions?.host_name || 'N/A';
                                 const siteId = dt.extensions?.site_id || 'N/A';
                                 const clientFolder = hostFolderMap.get(hostName) || '/';
-                                
+
                                 const now = new Date();
                                 const startTime = dt.extensions?.start_time ? new Date(dt.extensions.start_time) : null;
                                 const endTime = dt.extensions?.end_time ? new Date(dt.extensions.end_time) : null;
                                 const isActive = startTime && endTime && startTime <= now && endTime >= now;
-                                
+
                                 return (
                                     <tr key={dt.id || idx} className={isActive ? 'active-downtime' : ''}>
                                         {/* --- NUOVA CHECKBOX RIGA --- */}
                                         <td className="checkbox-cell">
-                                            <input 
+                                            <input
                                                 type="checkbox"
                                                 checked={selectedDowntimes.has(dt.id)}
                                                 onChange={(e) => handleSelectOne(e, dt.id)}
@@ -508,7 +508,7 @@ const ExistingDowntimes = () => {
                                         <td>{dt.extensions?.author || 'N/A'}</td>
                                         <td>{dt.extensions?.comment || 'N/A'}</td>
                                         <td>
-                                            <button 
+                                            <button
                                                 className="delete-button"
                                                 onClick={() => handleDeleteDowntime(dt.id, dt.extensions.site_id)}
                                                 disabled={isLoading}

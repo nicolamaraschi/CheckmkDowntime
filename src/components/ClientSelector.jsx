@@ -5,7 +5,7 @@ const ClientSelector = ({ selectedClient, setSelectedClient, selectedClients, se
     const { data, loading, error } = useApi('clients');
     const [searchTerm, setSearchTerm] = useState('');
 
-    const clients = data ? [...data].sort() : [];
+    const clients = useMemo(() => data ? [...data].sort() : [], [data]);
 
     // Determine mode
     const isMultiSelect = selectedClients !== undefined && setSelectedClients !== undefined;

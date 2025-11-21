@@ -18,7 +18,7 @@ export const useApi = (endpoint, options = {}) => {
       }
 
       const result = await fetchWithCache(endpoint, options);
-      
+
       if (isMounted) {
         setData(result.data);
         setLoading(result.loading);
@@ -32,6 +32,7 @@ export const useApi = (endpoint, options = {}) => {
     return () => {
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endpoint, fetchWithCache]);
 
   const refetch = async () => {
@@ -43,7 +44,12 @@ export const useApi = (endpoint, options = {}) => {
     setFromCache(result.fromCache);
   };
 
-  return { data, loading, error, fromCache, refetch };
+  const post = async (postEndpoint, body) => {
+    const result = await fetchWithCache(postEndpoint, { method: 'POST', body });
+    return result.data;
+  };
+
+  return { data, loading, error, fromCache, refetch, post };
 };
 
 export default useApi;

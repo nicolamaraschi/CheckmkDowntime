@@ -198,3 +198,31 @@
   z-index: 900;
   backdrop-filter: blur(2px);
 }
+
+/* Submenu styles */
+.submenu-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+.submenu-arrow {
+  margin-left: auto;
+  font-size: 0.8rem;
+  transition: transform 0.2s;
+}
+
+.submenu {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.submenu .nav-item {
+  padding-left: 3rem;
+  font-size: 0.9rem;
+}
+
+.submenu .nav-icon {
+  font-size: 1rem;
+}
