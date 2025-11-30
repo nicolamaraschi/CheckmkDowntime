@@ -63,13 +63,14 @@
 .filter-item select {
     width: 100%;
     padding: 8px 12px;
-    font-size: 15px;
-    border: 1px solid #ced4da;
+    font-size: 16px;
+    border: 2px solid #495057 !important;
     border-radius: 6px;
-    background-color: white;
+    background-color: #ffffff !important;
     height: 40px;
-    appearance: menulist; /* Ripristina l'aspetto standard delle select */
-    color: #333;
+    appearance: menulist;
+    color: #1a1a1a !important;
+    font-weight: 500;
 }
 
 .filter-item select:focus {
@@ -194,16 +195,16 @@ tr.active-downtime:hover {
     .filter-row {
         flex-wrap: wrap;
     }
-    
+
     .filter-item {
         flex: 0 0 calc(50% - 10px);
     }
-    
+
     .filter-actions {
         margin-top: 15px;
         width: 100%;
     }
-    
+
     .reset-button {
         width: 100%;
     }
@@ -213,16 +214,16 @@ tr.active-downtime:hover {
     .downtime-container h1 {
         font-size: 1.75rem;
     }
-    
+
     .filter-item {
         flex: 0 0 100%;
     }
-    
+
     .downtime-table {
         display: block;
         overflow-x: auto;
     }
-    
+
     .filter-row {
         gap: 15px;
     }
@@ -294,13 +295,14 @@ tr.active-downtime:hover {
 .filter-item select {
     width: 100%;
     padding: 8px 12px;
-    font-size: 15px;
-    border: 1px solid #ced4da;
+    font-size: 16px;
+    border: 2px solid #495057 !important;
     border-radius: 6px;
-    background-color: white;
+    background-color: #ffffff !important;
     height: 40px;
     appearance: menulist;
-    color: #333;
+    color: #1a1a1a !important;
+    font-weight: 500;
 }
 
 .filter-item select:focus {
@@ -459,13 +461,13 @@ tr.active-downtime:hover {
     .filter-item {
         flex: 0 0 100%;
     }
-    
+
     .filter-actions {
         width: 100%;
         margin-top: 15px;
         justify-content: space-between;
     }
-    
+
     .search-button,
     .reset-button {
         flex: 1;
@@ -506,14 +508,16 @@ tr.active-downtime:hover {
     justify-content: space-between;
     align-items: center;
     padding: 10px 0;
-    flex-wrap: wrap; /* Va a capo su schermi piccoli */
+    flex-wrap: wrap;
+    /* Va a capo su schermi piccoli */
 }
 
 /* Sposta il conteggio dei risultati qui */
 .results-count {
     font-size: 0.95rem;
     color: #555;
-    margin-bottom: 0; /* Rimuovi il margine di prima */
+    margin-bottom: 0;
+    /* Rimuovi il margine di prima */
 }
 
 .batch-actions {
@@ -529,7 +533,8 @@ tr.active-downtime:hover {
 }
 
 .delete-batch-button {
-    background-color: #ff4d4d; /* Rosso */
+    background-color: #ff4d4d;
+    /* Rosso */
     color: white;
     border: none;
     border-radius: 5px;

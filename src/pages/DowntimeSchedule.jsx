@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthProvider';
-import ClientSelector from '../components/ClientSelector';
+import ClientSelectorDropdown from '../components/ClientSelectorDropdown';
 import HostSelector from '../components/HostSelector';
-import TimePicker from '../components/TimePicker';
+import TimePickerFlatpickr from '../components/TimePickerFlatpickr';
+import DatePickerFlatpickr from '../components/DatePickerFlatpickr';
 import '../styles/downtimeSchedule.css';
+import '../styles/flatpickr-custom.css';
 import Loader from '../components/Loader';
 
 const DowntimeSchedule = () => {
@@ -14,6 +16,10 @@ const DowntimeSchedule = () => {
     const [durationValue, setDurationValue] = useState(1);
     const [durationUnit, setDurationUnit] = useState('weeks');
     const [commento, setCommento] = useState('');
+
+    // NEW: Scheduling mode toggle
+    const [scheduleMode, setScheduleMode] = useState('period'); // 'period' or 'specific'
+    const [specificDate, setSpecificDate] = useState('');
 
     // Advanced Settings
     const [batchSize, setBatchSize] = useState(3);
@@ -45,21 +51,30 @@ const DowntimeSchedule = () => {
             return;
         }
 
+        // Validation for specific date mode
+        if (scheduleMode === 'specific' && !specificDate) {
+            setError("Per favore, seleziona una data.");
+            return;
+        }
+
         setLoading(true);
 
         let totalDays = 0;
-        switch (durationUnit) {
-            case 'weeks':
-                totalDays = durationValue * 7;
-                break;
-            case 'months':
-                totalDays = durationValue * 30;
-                break;
-            default:
-                totalDays = durationValue * 7;
-        }
+        let repeatDaysForBackend = 0;
 
-        const repeatDaysForBackend = totalDays > 0 ? totalDays - 1 : 0;
+        if (scheduleMode === 'period') {
+            switch (durationUnit) {
+                case 'weeks':
+                    totalDays = durationValue * 7;
+                    break;
+                case 'months':
+                    totalDays = durationValue * 30;
+                    break;
+                default:
+                    totalDays = durationValue * 7;
+            }
+            repeatDaysForBackend = totalDays > 0 ? totalDays - 1 : 0;
+        }
 
         const payload = {
             hosts: hostList,
@@ -71,6 +86,11 @@ const DowntimeSchedule = () => {
             batch_size: parseInt(batchSize),
             delay: parseFloat(delay)
         };
+
+        // Add specific_date if in specific mode
+        if (scheduleMode === 'specific') {
+            payload.specific_date = specificDate;
+        }
 
         try {
             const response = await fetch('/api/schedule', {
@@ -99,6 +119,7 @@ const DowntimeSchedule = () => {
                 setDurationValue(1);
                 setDurationUnit('weeks');
                 setCommento('');
+                setSpecificDate('');
             }
 
         } catch (err) {
@@ -143,7 +164,7 @@ const DowntimeSchedule = () => {
                         <h3 className="section-title">1. Seleziona Clienti e Host</h3>
                         <div className="form-group">
                             <label>Clienti (Seleziona uno o più)</label>
-                            <ClientSelector selectedClients={selectedClients} setSelectedClients={setSelectedClients} />
+                            <ClientSelectorDropdown selectedClients={selectedClients} setSelectedClients={setSelectedClients} />
                         </div>
 
                         {/* HOST SELECTOR FULL WIDTH */}
@@ -191,66 +212,128 @@ const DowntimeSchedule = () => {
 
                     <hr className="divider" />
 
+                    {/* MODE TOGGLE */}
+                    <div className="form-section">
+                        <h3 className="section-title">2. Modalità di Programmazione</h3>
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                            <button
+                                type="button"
+                                className={`btn ${scheduleMode === 'period' ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => setScheduleMode('period')}
+                            >
+                                📅 Per Periodo
+                            </button>
+                            <button
+                                type="button"
+                                className={`btn ${scheduleMode === 'specific' ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => setScheduleMode('specific')}
+                            >
+                                📍 Per Data Specifica
+                            </button>
+                        </div>
+                    </div>
+
+                    <hr className="divider" />
+
                     {/* CONFIGURAZIONE */}
                     <div className="form-section">
-                        <h3 className="section-title">2. Configura Periodo</h3>
+                        <h3 className="section-title">3. Configura {scheduleMode === 'period' ? 'Periodo' : 'Data e Orario'}</h3>
+
+                        {/* SPECIFIC DATE MODE */}
+                        {scheduleMode === 'specific' && (
+                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                <label className="required-field">Data</label>
+                                <DatePickerFlatpickr
+                                    value={specificDate}
+                                    onChange={setSpecificDate}
+                                    minDate={new Date()}
+                                />
+                            </div>
+                        )}
 
                         <div className="form-row">
                             <div className="form-group">
                                 <label className="required-field">Ora Inizio</label>
-                                <TimePicker value={startTime} onChange={setStartTime} />
+                                <TimePickerFlatpickr value={startTime} onChange={setStartTime} />
                             </div>
                             <div className="form-group">
                                 <label className="required-field">Ora Fine</label>
-                                <TimePicker value={endTime} onChange={setEndTime} />
+                                <TimePickerFlatpickr value={endTime} onChange={setEndTime} />
                             </div>
                         </div>
 
                         <div className="info-badge">
                             <span className="icon">ℹ️</span>
                             <div>
-                                <strong>Logica di Programmazione:</strong><br />
-                                L'orario {startTime} - {endTime} verrà applicato <strong>tutti i giorni</strong>.<br />
-                                Weekend (Sab-Dom) incluso automaticamente.
+                                {scheduleMode === 'period' ? (
+                                    <>
+                                        <strong>Logica di Programmazione:</strong><br />
+                                        L'orario {startTime} - {endTime} verrà applicato <strong>tutti i giorni</strong>.<br />
+                                        Weekend (Sab-Dom) incluso automaticamente.
+                                    </>
+                                ) : (
+                                    <>
+                                        <strong>Programmazione Puntuale:</strong><br />
+                                        Verrà creato un downtime per la data {specificDate || '[seleziona data]'} dalle {startTime} alle {endTime}.
+                                    </>
+                                )}
                             </div>
                         </div>
 
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label className="required-field">Durata</label>
-                                <div className="duration-group">
+                        {/* DURATION - Only for period mode */}
+                        {scheduleMode === 'period' && (
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="required-field">Durata</label>
+                                    <div className="duration-group">
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="365"
+                                            value={durationValue}
+                                            onChange={(e) => setDurationValue(parseInt(e.target.value))}
+                                            className="form-input"
+                                        />
+                                        <select
+                                            value={durationUnit}
+                                            onChange={(e) => setDurationUnit(e.target.value)}
+                                            className="form-select"
+                                        >
+                                            <option value="weeks">Settimane</option>
+                                            <option value="months">Mesi</option>
+                                        </select>
+                                    </div>
+                                    <span className="text-sm text-muted mt-xs">{getDurationText()}</span>
+                                </div>
+
+                                <div className="form-group flex-2">
+                                    <label>Commento</label>
                                     <input
-                                        type="number"
-                                        min="1"
-                                        max="365"
-                                        value={durationValue}
-                                        onChange={(e) => setDurationValue(parseInt(e.target.value))}
+                                        type="text"
+                                        value={commento}
+                                        onChange={(e) => setCommento(e.target.value)}
+                                        placeholder="Es. Manutenzione ordinaria"
+                                        maxLength={200}
                                         className="form-input"
                                     />
-                                    <select
-                                        value={durationUnit}
-                                        onChange={(e) => setDurationUnit(e.target.value)}
-                                        className="form-select"
-                                    >
-                                        <option value="weeks">Settimane</option>
-                                        <option value="months">Mesi</option>
-                                    </select>
                                 </div>
-                                <span className="text-sm text-muted mt-xs">{getDurationText()}</span>
                             </div>
+                        )}
 
-                            <div className="form-group flex-2">
+                        {/* COMMENT - For specific mode */}
+                        {scheduleMode === 'specific' && (
+                            <div className="form-group">
                                 <label>Commento</label>
                                 <input
                                     type="text"
                                     value={commento}
                                     onChange={(e) => setCommento(e.target.value)}
-                                    placeholder="Es. Manutenzione ordinaria"
+                                    placeholder="Es. Attività di manutenzione"
                                     maxLength={200}
                                     className="form-input"
                                 />
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* ADVANCED SETTINGS */}

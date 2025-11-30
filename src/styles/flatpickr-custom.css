@@ -1,0 +1,68 @@
+/* Flatpickr Custom Styles */
+
+/* Override Flatpickr input styling to match our design */
+.flatpickr-input {
+    padding: 0.625rem !important;
+    border: 2px solid #495057 !important;
+    border-radius: var(--radius-md) !important;
+    font-size: var(--font-size-base) !important;
+    font-family: var(--font-family-sans) !important;
+    background-color: white !important;
+    width: 100% !important;
+    color: #111827 !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+}
+
+.flatpickr-input:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px var(--primary-light) !important;
+    outline: none !important;
+}
+
+/* Calendar popup styling */
+.flatpickr-calendar {
+    border-radius: var(--radius-md) !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+/* Selected date/time styling */
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* Today styling */
+.flatpickr-day.today {
+    border-color: var(--primary-color) !important;
+}
+
+/* Time picker styling */
+.flatpickr-time input {
+    font-weight: 500 !important;
+    color: #111827 !important;
+}
+
+.flatpickr-time input:hover,
+.flatpickr-time input:focus {
+    background: var(--primary-light) !important;
+}
+
+/* Month navigation */
+.flatpickr-months .flatpickr-month {
+    background: var(--primary-color) !important;
+    color: white !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months {
+    background: var(--primary-color) !important;
+    color: white !important;
+}
+
+/* Arrows */
+.flatpickr-months .flatpickr-prev-month:hover svg,
+.flatpickr-months .flatpickr-next-month:hover svg {
+    fill: white !important;
+}
