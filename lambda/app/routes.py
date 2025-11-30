@@ -416,61 +416,37 @@ async def schedule_downtime(request: Request, req: DowntimeRequest, token: str =
         else:
             ripeti = ripeti_val
 
+        today = datetime.today()
         l_start = []
         l_end = []
         
-        # NEW: Handle specific date mode
-        if req.specific_date:
-            logger.info(f"[{request_id}] Specific date mode: {req.specific_date}")
-            
-            # Parse the specific date (format: YYYY-MM-DD)
-            specific_day = datetime.strptime(req.specific_date, "%Y-%m-%d")
+        logger.info(f"[{request_id}] Calculating downtime dates for {ripeti+1} days")
+        
+        for i in range(ripeti + 1):
+            day = today + timedelta(days=i)
+            current_weekday = day.weekday()
             
             start_dt_user = datetime.strptime(start_time_user, "%H:%M")
             end_dt_user = datetime.strptime(end_time_user, "%H:%M")
             
-            day_start_user = datetime(specific_day.year, specific_day.month, specific_day.day, start_dt_user.hour, start_dt_user.minute)
+            day_start_user = datetime(day.year, day.month, day.day, start_dt_user.hour, start_dt_user.minute)
             
             if end_dt_user.time() < start_dt_user.time():
-                day_end_user = datetime(specific_day.year, specific_day.month, specific_day.day, end_dt_user.hour, end_dt_user.minute) + timedelta(days=1)
+                day_end_user = datetime(day.year, day.month, day.day, end_dt_user.hour, end_dt_user.minute) + timedelta(days=1)
             else:
-                day_end_user = datetime(specific_day.year, specific_day.month, specific_day.day, end_dt_user.hour, end_dt_user.minute)
+                day_end_user = datetime(day.year, day.month, day.day, end_dt_user.hour, end_dt_user.minute)
             
             l_start.append(f"{day_start_user.isoformat()}{calcolo_dst(day_start_user)}")
             l_end.append(f"{day_end_user.isoformat()}{calcolo_dst(day_end_user)}")
-            
-            logger.info(f"[{request_id}] Created 1 downtime slot for specific date {req.specific_date}")
-        else:
-            # EXISTING: Period-based scheduling
-            today = datetime.today()
-            
-            logger.info(f"[{request_id}] Calculating downtime dates for {ripeti+1} days")
-            
-            for i in range(ripeti + 1):
-                day = today + timedelta(days=i)
-                current_weekday = day.weekday()
-                
-                start_dt_user = datetime.strptime(start_time_user, "%H:%M")
-                end_dt_user = datetime.strptime(end_time_user, "%H:%M")
-                
-                day_start_user = datetime(day.year, day.month, day.day, start_dt_user.hour, start_dt_user.minute)
-                
-                if end_dt_user.time() < start_dt_user.time():
-                    day_end_user = datetime(day.year, day.month, day.day, end_dt_user.hour, end_dt_user.minute) + timedelta(days=1)
-                else:
-                    day_end_user = datetime(day.year, day.month, day.day, end_dt_user.hour, end_dt_user.minute)
-                
-                l_start.append(f"{day_start_user.isoformat()}{calcolo_dst(day_start_user)}")
-                l_end.append(f"{day_end_user.isoformat()}{calcolo_dst(day_end_user)}")
 
-                if current_weekday == 5: # Sabato
-                    logger.debug(f"[{request_id}] Adding Full Weekend block for {day.date()}")
-                    we_start = datetime(day.year, day.month, day.day, 0, 0)
-                    sunday = day + timedelta(days=1)
-                    we_end = datetime(sunday.year, sunday.month, sunday.day, 23, 59)
-                    
-                    l_start.append(f"{we_start.isoformat()}{calcolo_dst(we_start)}")
-                    l_end.append(f"{we_end.isoformat()}{calcolo_dst(we_end)}")
+            if current_weekday == 5: # Sabato
+                logger.debug(f"[{request_id}] Adding Full Weekend block for {day.date()}")
+                we_start = datetime(day.year, day.month, day.day, 0, 0)
+                sunday = day + timedelta(days=1)
+                we_end = datetime(sunday.year, sunday.month, sunday.day, 23, 59)
+                
+                l_start.append(f"{we_start.isoformat()}{calcolo_dst(we_start)}")
+                l_end.append(f"{we_end.isoformat()}{calcolo_dst(we_end)}")
 
         logger.info(f"[{request_id}] Generated {len(l_start)} downtime periods per host.")
         

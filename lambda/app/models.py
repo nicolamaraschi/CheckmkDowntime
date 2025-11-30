@@ -4,14 +4,13 @@ from datetime import datetime
 
 class DowntimeRequest(BaseModel):
     hosts: List[str]
-    giorni: List[int] = []
+    giorni: List[int]
     startTime: str
     endTime: str
-    ripeti: int
+    ripeti: Union[int, str]
     commento: str
     batch_size: Optional[int] = 3
     delay: Optional[float] = 1.0
-    specific_date: Optional[str] = None  # NEW: For specific date scheduling
 
 class HostWithFolder(BaseModel):
     id: str

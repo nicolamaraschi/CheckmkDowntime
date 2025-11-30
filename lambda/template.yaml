@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Checkmk Downtime Backend
+  Serverless FastAPI application running on AWS Lambda
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Architectures:
+      - x86_64
+
+Resources:
+  CheckmkApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: app.main.handler
+      Description: FastAPI backend for Checkmk Downtime Manager
+      Environment:
+        Variables:
+          # CheckMK Configuration
+          CHECKMK_HOST: !Ref CheckmkHost
+          CHECKMK_SITE: !Ref CheckmkSite
+          CHECKMK_USER: !Ref CheckmkUser
+          CHECKMK_PASSWORD: !Ref CheckmkPassword
+          
+          # AWS Athena Configuration (CloudConnexa)
+          AWS_REGION: !Ref AwsRegion
+          ATHENA_DB: !Ref AthenaDb
+          ATHENA_RESULTS_BUCKET: !Ref AthenaResultsBucket
+          ATHENA_WORKGROUP: !Ref AthenaWorkgroup
+          
+          # AWS Athena Configuration (SAP)
+          SAP_ATHENA_DB: !Ref SapAthenaDb
+          SAP_ATHENA_WORKGROUP: !Ref SapAthenaWorkgroup
+          
+      Events:
+        HttpApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+
+  ApplicationResourceGroup:
+    Type: AWS::ResourceGroups::Group
+    Properties:
+      Name:
+        Fn::Sub: ApplicationInsights-SAM-${AWS::StackName}
+      ResourceQuery:
+        Type: TAG_FILTERS_1_0
+        Query:
+          ResourceTypeFilters:
+            - AWS::AllSupported
+          TagFilters:
+            - Key: aws:cloudformation:stack-name
+              Values:
+                - !Ref AWS::StackName
+
+Parameters:
+  CheckmkHost:
+    Type: String
+    Description: CheckMK Server Host URL
+  CheckmkSite:
+    Type: String
+    Description: CheckMK Site Name
+  CheckmkUser:
+    Type: String
+    Description: CheckMK Automation User
+  CheckmkPassword:
+    Type: String
+    Description: CheckMK Automation Password
+  AwsRegion:
+    Type: String
+    Default: eu-central-1
+    Description: AWS Region for Athena
+  AthenaDb:
+    Type: String
+    Default: cloudconnexa_logs_db
+    Description: Athena Database for CloudConnexa
+  AthenaResultsBucket:
+    Type: String
+    Description: S3 Bucket for Athena Results
+  AthenaWorkgroup:
+    Type: String
+    Default: CloudConnexaLogs
+    Description: Athena Workgroup for CloudConnexa
+  SapAthenaDb:
+    Type: String
+    Default: sap_reports_db
+    Description: Athena Database for SAP
+  SapAthenaWorkgroup:
+    Type: String
+    Default: ReportCheckSistemiSap
+    Description: Athena Workgroup for SAP
+
+Outputs:
+  CheckmkApiUrl:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+  CheckmkApiFunctionArn:
+    Description: "Checkmk API Lambda Function ARN"
+    Value: !GetAtt CheckmkApiFunction.Arn
